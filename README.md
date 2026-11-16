@@ -103,7 +103,7 @@ python -m http.server 8080
 │  ├─ landmarks/              # 326 张城市地标图（jpg，760×475）
 │  ├─ flags/                  # 56 面国旗（svg）
 │  └─ cities/generic.svg      # 尚未上传影像时的通用地点封面
-├─ tools/                     # 地标图片抓取与压缩脚本
+├─ tools/                     # 构建与图片处理脚本（详见「自定义」一节）
 ├─ manifest.webmanifest       # PWA 清单（名称、图标、全屏启动）
 ├─ sw.js                      # Service Worker：离线缓存程序本体
 ├─ preview.png                # 桌面端空白启动页
