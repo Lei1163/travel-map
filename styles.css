@@ -1219,28 +1219,45 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   .share-hint { display: none; }
 }
 
-/* ------------------------------------------------------- 移动端：横屏优先 */
-/* 竖屏时盖一层提示（仅触屏设备），提示用户把手机转过来 */
-.rotate-hint {
-  position: fixed; inset: 0; z-index: 300;
-  display: grid; place-content: center; justify-items: center; gap: 12px;
-  padding: 32px 26px; text-align: center;
-  background:
-    radial-gradient(circle at 50% 22%, rgba(180, 198, 174, 0.55), transparent 58%),
-    #ECE8DC;
-  color: var(--ink);
+/* ------------------------------------------------------- 移动端强制横屏 */
+/* 竖屏握持时把界面整体旋转 90°：手机上打开就是横屏的用法，不再弹提示。 */
+html.force-landscape,
+html.force-landscape body {
+  overflow: hidden;
+  height: 100%;
+  background: #ECE8DC;
 }
-.rotate-hint[hidden] { display: none; }
-.rotate-hint strong { font-family: var(--font-serif); font-size: 21px; font-weight: 600; letter-spacing: 0.04em; }
-.rotate-hint p { margin: 0; max-width: 260px; font-size: 12px; line-height: 1.8; color: rgba(37, 68, 59, 0.62); }
-.rotate-icon svg {
-  width: 66px; height: 66px; fill: none; stroke: var(--accent-ink);
-  stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
-  animation: rotateNudge 2.6s ease-in-out infinite;
+
+html.force-landscape .app,
+html.force-landscape dialog[open],
+html.force-landscape .lightbox[open] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  margin: 0;
+  width: var(--fl-w);
+  height: var(--fl-h);
+  max-width: none;
+  max-height: none;
+  transform: translateX(var(--fl-h)) rotate(90deg);
+  transform-origin: 0 0;
+  border-radius: 0;
 }
-@keyframes rotateNudge {
-  0%, 55%, 100% { transform: rotate(0deg); }
-  25%, 35% { transform: rotate(-90deg); }
+
+/* 弹窗自带的入场动画会写回 transform: none，强制横屏时必须关掉 */
+html.force-landscape dialog[open],
+html.force-landscape dialog[open] * { animation: none !important; }
+
+html.force-landscape .app { min-height: 0; }
+html.force-landscape .map-shell,
+html.force-landscape #travel-map { height: 100%; }
+
+/* 提示条与遮罩跟随旋转，保证相对界面方向正确 */
+html.force-landscape .toast {
+  transform: translate(-50%, 0) rotate(90deg);
+  transform-origin: 50% 0;
+  top: 12px;
+  left: 50%;
 }
 
 /* 横屏（高度小的宽屏）：压缩顶部，地图占满，记录卡片改成右侧窄卡 */

@@ -4442,21 +4442,36 @@
     } catch (error) { /* ignore */ }
   }
 
-  // 竖屏时提示旋转到横屏；支持方向锁的浏览器顺带请求锁定。
+  // 手机上默认横屏：竖屏握持时把整个界面顺时针旋转 90°，相当于强制横屏。
+  // 用户把手机横过来之后（orientation 变 landscape），旋转自动取消。
   function enableLandscapeHint() {
-    const hint = document.getElementById('rotateHint');
-    if (!hint) return;
-    const isTouch = window.matchMedia('(pointer: coarse)').matches;
-    if (!isTouch) return;
+    const root = document.documentElement;
+    const touch = window.matchMedia('(pointer: coarse)').matches;
 
     const sync = () => {
-      const portrait = window.innerHeight > window.innerWidth;
-      const narrow = Math.min(window.innerWidth, window.innerHeight) <= 820;
-      hint.hidden = !(portrait && narrow);
+      const w = window.innerWidth;
+      const hgt = window.innerHeight;
+      const portrait = hgt > w;
+      const phone = Math.min(w, hgt) <= 820;
+      const force = touch && portrait && phone;
+      if (force) {
+        // 旋转后的界面尺寸 = 竖屏的高 × 宽
+        root.style.setProperty('--fl-w', `${hgt}px`);
+        root.style.setProperty('--fl-h', `${w}px`);
+      }
+      root.classList.toggle('force-landscape', force);
+      // 部分浏览器支持方向锁（通常需要全屏或已安装），能锁就顺手锁上
+      const orientation = window.screen?.orientation;
+      if (force && orientation?.lock) {
+        orientation.lock('landscape').catch(() => {});
+      } else if (!force && orientation?.unlock) {
+        try { orientation.unlock(); } catch (error) { /* ignore */ }
+      }
     };
+
     sync();
     window.addEventListener('resize', sync);
-    window.addEventListener('orientationchange', () => setTimeout(sync, 160));
+    window.addEventListener('orientationchange', () => setTimeout(sync, 120));
   }
 
   // Offline shell for the installed app. Skipped on file:// where it cannot work.
