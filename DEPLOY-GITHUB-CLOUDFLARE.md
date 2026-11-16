@@ -116,7 +116,8 @@ HTTPS 证书会自动签发。
 构建环境自带 python3）。
 
 **Q：想同时在 GitHub Pages 上有一份？**
-仓库里的 `.github/workflows/deploy-pages.yml` 已支持：在 GitHub 仓库
+仓库里的 Pages 工作流已改名为 `deploy-pages.yml.disabled`（避免每次推送都跑一个用不到、
+还会报红的 Actions）。想启用时把它改回 `.yml`，再到 GitHub 仓库
 Settings → Pages → Source 选择 **GitHub Actions**，推送后会自动发布 `dist/`。
 
 **Q：国内访问慢？**
