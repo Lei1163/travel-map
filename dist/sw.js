@@ -2,7 +2,7 @@
    只缓存程序本体（HTML/CSS/JS/地图数据/地标图），用户的照片与手记在 IndexedDB 里，
    完全不经过这里，所以升级缓存不会碰到个人数据。 */
 
-const VERSION = 'atlas-v2';
+const VERSION = 'atlas-v3';
 const CORE = [
   './',
   './index.html',
