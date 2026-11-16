@@ -1,0 +1,37 @@
+# 忽略开发过程产物与临时文件
+.git/
+.cdp-*/
+
+# 未加工的下载原图（59MB，只用于本地重新生成）
+assets/landmarks/raw/
+
+# 中间数据 / 抓取脚本产物
+tools/data/china-raw.json
+tools/data/cities-merged.json
+tools/data/docx-*.json
+tools/data/new-landmarks.json
+tools/data/fetch-log.txt
+tools/data/slugs.json
+
+# 单文件版（体积 25MB，由脚本生成；需要分发给朋友时再手动生成）
+赴迹.html
+
+# 部署压缩包（由 build-dist.py 生成，Cloudflare 用不到）
+roam-atlas-site.zip
+
+# 本机测试截图（保留少量最终预览图，其余忽略）
+identity-*.png
+docx-城市图片预览.png
+新增城市图片总览.png
+分享图-头像昵称对照.png
+新城市图片预览.png
+province-dialog.png
+mobile-*.png
+移动端预览截图.png
+share-card-*.png
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

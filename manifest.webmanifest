@@ -1,0 +1,43 @@
+{
+  "name": "赴迹 · 我的旅行轨迹",
+  "short_name": "赴迹",
+  "description": "把每一次抵达连成一条只属于你的经线：记录城市、影像与手记，全部都保存在这台设备上。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#ECE8DC",
+  "theme_color": "#ECE8DC",
+  "categories": ["travel", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "assets/brand/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/brand/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "添加一段新足迹",
+      "short_name": "添加足迹",
+      "url": "./index.html?action=add",
+      "icons": [{ "src": "assets/brand/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

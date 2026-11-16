@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>赴迹 · 移动端预览</title>
+<style>
+  :root {
+    --ink: #25443B;
+    --ink-soft: rgba(37, 68, 59, 0.62);
+    --cream: #ECE8DC;
+    --paper: #F6F3EA;
+    --teal: #17A99A;
+    --accent: #0B6B62;
+    --font-sans: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: var(--font-sans); color: var(--ink);
+    background:
+      radial-gradient(circle at 18% 8%, rgba(180, 198, 174, 0.5), transparent 46%),
+      radial-gradient(circle at 84% 92%, rgba(57, 214, 194, 0.16), transparent 52%),
+      var(--cream);
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    padding: 26px 18px 42px;
+  }
+  header { text-align: center; }
+  h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: 0.02em; }
+  header p { margin: 0; font-size: 12.5px; color: var(--ink-soft); }
+
+  .sizes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .sizes button {
+    font: inherit; font-size: 12px; padding: 7px 13px; cursor: pointer;
+    border-radius: 999px; border: 1px solid rgba(37, 68, 59, 0.2);
+    background: rgba(255, 255, 255, 0.6); color: var(--ink);
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .sizes button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #F6F3EA; }
+
+  .stage { display: flex; gap: 26px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+
+  /* 手机外壳 */
+  .phone {
+    position: relative; flex: none;
+    padding: 12px; border-radius: 46px;
+    background: linear-gradient(160deg, #2b3a35, #17241f 55%, #0f1a16);
+    box-shadow: 0 26px 60px rgba(15, 34, 28, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+  .phone::after {
+    content: ""; position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
+    width: 96px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.28);
+  }
+  .screen {
+    position: relative; overflow: hidden; border-radius: 34px; background: var(--cream);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+  }
+  .notch {
+    position: absolute; z-index: 3; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 96px; height: 22px; border-radius: 14px; background: #10201b;
+  }
+  .screen iframe { display: block; border: 0; width: 100%; height: 100%; background: var(--cream); }
+
+  /* 操作说明 */
+  .tips {
+    width: 340px; max-width: 100%; padding: 18px 20px; border-radius: 20px;
+    background: rgba(255, 255, 255, 0.62); border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 16px 40px rgba(20, 48, 41, 0.12);
+  }
+  .tips h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: 0.08em; color: var(--accent); }
+  .tips ol { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.9; }
+  .tips li b { font-weight: 600; }
+  .tips .note {
+    margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed rgba(37, 68, 59, 0.16);
+    font-size: 11.5px; line-height: 1.8; color: var(--ink-soft);
+  }
+  .tips kbd {
+    font-family: Consolas, monospace; font-size: 10.5px; padding: 1px 5px; border-radius: 5px;
+    background: rgba(37, 68, 59, 0.08); border: 1px solid rgba(37, 68, 59, 0.14);
+  }
+  @media (max-width: 820px) {
+    .tips { width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>赴迹 · 移动端预览</h1>
+    <p>下面是真实运行的 app，只是被装进了手机尺寸的窗口里 —— 可以点、可以拖、可以缩</p>
+  </header>
+
+  <div class="sizes" role="group" aria-label="模拟机型">
+    <button type="button" data-w="390" data-h="844" aria-pressed="true">iPhone 14 · 390×844</button>
+    <button type="button" data-w="375" data-h="812" aria-pressed="false">iPhone X · 375×812</button>
+    <button type="button" data-w="360" data-h="780" aria-pressed="false">安卓常见 · 360×780</button>
+    <button type="button" data-w="320" data-h="568" aria-pressed="false">小屏 · 320×568</button>
+  </div>
+
+  <div class="stage">
+    <div class="phone">
+      <div class="screen" id="screen">
+        <div class="notch" aria-hidden="true"></div>
+        <iframe id="appFrame" src="index.html" title="赴迹移动端预览"></iframe>
+      </div>
+    </div>
+
+    <section class="tips">
+      <h2>手机上的操作方式</h2>
+      <ol>
+        <li><b>左上角 ☰ 菜单</b>：滑出「旅程足迹」侧栏，点空白处收起</li>
+        <li><b>顶部「国内 / 国际」</b>：切换两张互不相干的地图</li>
+        <li><b>单指拖动</b>：平移地图；<b>双指捏合</b>（电脑上用滚轮）：缩放</li>
+        <li><b>点城市圆点</b>：弹出该地点的记录卡片（照片 / 手记 / 日期）</li>
+        <li><b>＋ 添加一段新足迹</b>：选城市 → 填日期 → 存成一段旅程</li>
+        <li><b>右上角分享图标</b>：生成国内 / 国际两张分享图</li>
+      </ol>
+      <p class="note">
+        小屏（≤760px）时：地图上的城市名只显示选中的那一个；缩放按钮和底部图例自动隐藏；
+        记录卡片变成从底部弹出的抽屉，照片网格固定 3 列。
+      </p>
+      <p class="note">
+        想在真机上体验：把这个文件夹（或 <kbd>赴迹.html</kbd>）发到手机，
+        用 Chrome / Safari 打开即可，布局会自动切成手机版。
+      </p>
+    </section>
+  </div>
+
+<script>
+  (function () {
+    const frame = document.getElementById('appFrame');
+    const screen = document.getElementById('screen');
+    const buttons = [...document.querySelectorAll('.sizes button')];
+
+    function apply(width, height) {
+      screen.style.width = width + 'px';
+      screen.style.height = height + 'px';
+      frame.style.width = width + 'px';
+      frame.style.height = height + 'px';
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        buttons.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+        apply(Number(button.dataset.w), Number(button.dataset.h));
+      });
+    });
+
+    const active = buttons.find((item) => item.getAttribute('aria-pressed') === 'true') || buttons[0];
+    apply(Number(active.dataset.w), Number(active.dataset.h));
+  })();
+</script>
+</body>
+</html>
