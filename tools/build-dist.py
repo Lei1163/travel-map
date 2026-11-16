@@ -1,5 +1,5 @@
 from pathlib import Path
-import shutil, zipfile
+import shutil, sys, zipfile
 
 ROOT = Path(r'D:\project\travel map')
 DIST = ROOT / 'dist'
@@ -40,11 +40,13 @@ total = sum(p.stat().st_size for p in DIST.rglob('*') if p.is_file())
 count = sum(1 for p in DIST.rglob('*') if p.is_file())
 print(f'dist: {count} files, {total/1048576:.1f} MB')
 
-zip_path = ROOT / 'roam-atlas-site.zip'
-if zip_path.exists():
-    zip_path.unlink()
-with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
-    for path in sorted(DIST.rglob('*')):
-        if path.is_file():
-            zf.write(path, path.relative_to(DIST))
-print(f'zip: {zip_path.stat().st_size/1048576:.1f} MB')
+# 需要发给别人 / 手动上传时才打包：python tools/build-dist.py --zip
+if '--zip' in sys.argv:
+    zip_path = ROOT / 'roam-atlas-site.zip'
+    if zip_path.exists():
+        zip_path.unlink()
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        for path in sorted(DIST.rglob('*')):
+            if path.is_file():
+                zf.write(path, path.relative_to(DIST))
+    print(f'zip: {zip_path.stat().st_size/1048576:.1f} MB')
