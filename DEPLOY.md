@@ -34,7 +34,7 @@
 1. 打开 <https://app.netlify.com/drop>
 2. 拖拽下面**任意一种**都可以：
    - **`dist` 文件夹**（推荐，最稳）
-   - 或者 `roam-atlas-site.zip`（它就等于 dist 的内容，解压后首页在根目录）
+   - 需要压缩包时先运行 `python tools/build-dist.py --zip`，再上传生成的 `roam-atlas-site.zip`
 3. 等几十秒，会得到一个公开网址，例如 `https://feiji-travel.netlify.app`
 4. 把网址发给朋友，手机 / 电脑打开即可使用；也可以点「添加到主屏幕 / 安装应用」，它会像普通 App 一样有独立图标、全屏打开
 

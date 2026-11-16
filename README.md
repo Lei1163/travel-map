@@ -62,7 +62,7 @@ python -m http.server 8080
 2. 电脑用 Chrome / Edge 打开该网址，点地址栏的「安装」；手机浏览器点「添加到主屏幕」
 3. 之后它会以独立窗口 / 独立图标启动，断网也能打开
 
-更完整的发布与分享说明见 [DEPLOY.md](DEPLOY.md)；重新打包用 `python tools/build-dist.py`（同时生成 `roam-atlas-site.zip`）。
+更完整的发布与分享说明见 [DEPLOY.md](DEPLOY.md)；重新打包用 `python tools/build-dist.py`；要生成给别人的压缩包时加参数：`python tools/build-dist.py --zip`。
 
 > 提醒：每个人的记录都存在自己设备的浏览器里，把文件或网址给朋友后，对方看到的是自己的空白地图，不会看到你的行程。
 
