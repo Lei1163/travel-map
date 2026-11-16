@@ -1218,3 +1218,61 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   .share-foot { padding: 12px 16px 14px; flex-wrap: wrap; }
   .share-hint { display: none; }
 }
+
+/* ------------------------------------------------------- 移动端：横屏优先 */
+/* 竖屏时盖一层提示（仅触屏设备），提示用户把手机转过来 */
+.rotate-hint {
+  position: fixed; inset: 0; z-index: 300;
+  display: grid; place-content: center; justify-items: center; gap: 12px;
+  padding: 32px 26px; text-align: center;
+  background:
+    radial-gradient(circle at 50% 22%, rgba(180, 198, 174, 0.55), transparent 58%),
+    #ECE8DC;
+  color: var(--ink);
+}
+.rotate-hint[hidden] { display: none; }
+.rotate-hint strong { font-family: var(--font-serif); font-size: 21px; font-weight: 600; letter-spacing: 0.04em; }
+.rotate-hint p { margin: 0; max-width: 260px; font-size: 12px; line-height: 1.8; color: rgba(37, 68, 59, 0.62); }
+.rotate-icon svg {
+  width: 66px; height: 66px; fill: none; stroke: var(--accent-ink);
+  stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  animation: rotateNudge 2.6s ease-in-out infinite;
+}
+@keyframes rotateNudge {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  25%, 35% { transform: rotate(-90deg); }
+}
+
+/* 横屏（高度小的宽屏）：压缩顶部，地图占满，记录卡片改成右侧窄卡 */
+@media (orientation: landscape) and (max-height: 560px) {
+  .app { min-height: 0; height: 100svh; }
+  .topbar { top: 8px; height: 42px; left: 10px; right: 10px; }
+  .topbar-left { padding: 4px 10px 4px 4px; gap: 6px; }
+  .scope-switch { min-width: 116px; }
+  .scope-btn { padding: 4px 8px; font-size: 10.5px; }
+  .share-btn { height: 34px; padding: 0 12px 0 10px; font-size: 10px; }
+  .avatar-small { width: 32px; height: 32px; font-size: 10px; }
+  .journal-intro h1 { font-size: 26px; }
+  .journal-intro .lede { display: none; }
+  .sidebar { left: 8px; top: 8px; bottom: 8px; width: 268px; padding: 14px 14px 10px; }
+  .sidebar-head { margin-bottom: 6px; }
+  .journal-intro { margin: 8px 0 10px; }
+  .stats { padding: 8px 0; }
+  .place-item { min-height: 52px; grid-template-columns: 62px 1fr 38px; }
+  .place-main strong { font-size: 13px; }
+  .add-place { height: 40px; margin-top: 8px; font-size: 10px; }
+  .memory-panel { top: 56px; right: 8px; bottom: 8px; left: auto; width: min(330px, 44vw); height: auto; border-radius: 18px; }
+  .memory-cover { height: 120px; }
+  .map-bottom { display: none; }
+  .map-legend { font-size: 8px; }
+  .toast { top: 58px; }
+  .add-dialog { height: calc(100svh - 12px); }
+  .add-body { grid-template-columns: minmax(0, 1fr) 300px; }
+  .add-preview { padding: 14px 16px 12px; }
+  .preview-art { height: 96px; }
+  .share-dialog { width: calc(100vw - 24px); }
+  .share-preview { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+}
+
+/* 双指缩放时不要选中文字、不要出现点击态 */
+#travel-map.is-pinching { cursor: grabbing; }

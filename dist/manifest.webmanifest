@@ -7,11 +7,19 @@
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "browser"],
-  "orientation": "any",
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "orientation": "landscape",
   "background_color": "#ECE8DC",
   "theme_color": "#ECE8DC",
-  "categories": ["travel", "lifestyle", "productivity"],
+  "categories": [
+    "travel",
+    "lifestyle",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "assets/brand/icon-192.png",
@@ -37,7 +45,12 @@
       "name": "添加一段新足迹",
       "short_name": "添加足迹",
       "url": "./index.html?action=add",
-      "icons": [{ "src": "assets/brand/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "assets/brand/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
