@@ -1494,14 +1494,16 @@
   // the element and the overflow is cropped. Derive that transform straight
   // from the element box: it is always in sync with the current layout.
   function mapViewport() {
-    const rect = mapSvg.getBoundingClientRect();
-    if (!rect.width || !rect.height) return null;
-    const s = Math.max(rect.width / 1440, rect.height / 900);
+    // 用布局尺寸（clientWidth/Height），旋转 90° 后 getBoundingClientRect 会把宽高对调
+    const width = mapSvg.clientWidth || mapSvg.getBoundingClientRect().width;
+    const height = mapSvg.clientHeight || mapSvg.getBoundingClientRect().height;
+    if (!width || !height) return null;
+    const s = Math.max(width / 1440, height / 900);
     return {
-      rect,
+      rect: { left: 0, top: 0, width, height, right: width, bottom: height },
       s,
-      e: rect.left + (rect.width - 1440 * s) / 2,
-      f: rect.top + (rect.height - 900 * s) / 2
+      e: (width - 1440 * s) / 2,
+      f: (height - 900 * s) / 2
     };
   }
 
@@ -1519,18 +1521,46 @@
 
   // Zoom out until the whole map of the current scope fits, and centre it in
   // the area that is not covered by the sidebar or the detail panel.
+  // 当前布局里真正会遮挡地图的 UI：抽屉式侧栏、右侧记录卡片。
+  function mapSafeArea() {
+    const vp = mapViewport();
+    if (!vp) return null;
+    const { rect } = vp;
+    const compact = document.documentElement.classList.contains('compact-landscape');
+    const drawer = window.matchMedia('(max-width: 980px)').matches;
+    const sidebar = document.getElementById('sidebar');
+    const panel = document.getElementById('memoryPanel');
+    const sidebarOpen = Boolean(sidebar && sidebar.classList.contains('is-open'));
+    const panelVisible = Boolean(panel && !panel.classList.contains('is-hidden'));
+
+    const gap = compact ? 10 : 14;
+    let left = rect.left + gap;
+    let right = rect.right - gap;
+    let top = rect.top + (compact ? 54 : (drawer ? 66 : 100));
+    let bottom = rect.bottom - (compact ? gap : (drawer ? 20 : 74));
+
+    if (!drawer && !compact) left = rect.left + 344;
+    else if (sidebarOpen) left = rect.left + (sidebar?.offsetWidth || 268) + 16;
+
+    if (panelVisible && !drawer) {
+      const panelWidth = panel.offsetWidth || 374;
+      right = rect.right - panelWidth - (compact ? 14 : 40);
+    }
+    return { left, right, top, bottom };
+  }
+
   function wholeMapFrame() {
     const box = currentLandBox();
     const vp = mapViewport();
     if (!vp) return { k: 0.8, tx: 0, ty: 0 };
     const { rect, s, e, f } = vp;
-    const mobile = window.innerWidth <= 760;
-    const safe = mobile
-      ? { left: rect.left + 14, right: rect.right - 14, top: rect.top + 72, bottom: rect.bottom - 150 }
-      : { left: rect.left + 344, right: rect.right - 40, top: rect.top + 100, bottom: rect.bottom - 74 };
+    const safe = mapSafeArea() || {
+      left: rect.left + 14, right: rect.right - 14, top: rect.top + 72, bottom: rect.bottom - 74
+    };
     const usableW = Math.max(180, safe.right - safe.left);
     const usableH = Math.max(160, safe.bottom - safe.top);
-    const k = clamp(Math.min(usableW / (box.maxX - box.minX), usableH / (box.maxY - box.minY)) / s, 0.24, 1.6);
+    const maxK = document.documentElement.classList.contains('compact-landscape') ? 2.4 : 1.6;
+    const k = clamp(Math.min(usableW / (box.maxX - box.minX), usableH / (box.maxY - box.minY)) / s, 0.24, maxK);
     const cx = (box.minX + box.maxX) / 2;
     const cy = (box.minY + box.maxY) / 2;
     const tx = ((safe.left + safe.right) / 2 - e) / s - cx * k;
@@ -1582,20 +1612,30 @@
     const spanX = Math.max(50, maxX - minX);
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
+    const vp = mapViewport();
+    const safe = mapSafeArea();
     let k;
     let tx;
     let ty;
-    if (window.innerWidth <= 760) {
+    if (vp && safe) {
+      const { s, e, f } = vp;
+      const compact = document.documentElement.classList.contains('compact-landscape');
+      const usableW = Math.max(200, safe.right - safe.left);
+      const usableH = Math.max(150, safe.bottom - safe.top);
+      const spanY = Math.max(40, maxY - minY);
+      const maxK = compact ? 2.4 : 1.6;
+      k = clamp(Math.min(usableW / (spanX + 70), usableH / (spanY + 60)) / s, 0.42, maxK);
+      // 让轨迹中心落在安全区中心
+      tx = ((safe.left + safe.right) / 2 - e) / s - cx * k;
+      ty = ((safe.top + safe.bottom) / 2 - f) / s - cy * k;
+      if (!compact && window.innerWidth > 760) {
+        // 桌面上保持原来略微偏上的取景习惯
+        ty = 460 - cy * k;
+      }
+    } else {
       k = clamp(360 / (spanX + 35), 0.42, 0.78);
       tx = 720 - cx * k;
       ty = 430 - cy * k;
-    } else {
-      const cardVisible = !$('#memoryPanel').classList.contains('is-hidden');
-      const safeRight = cardVisible ? 1022 : 1408;
-      const safeWidth = Math.max(420, safeRight - 334 - 84);
-      k = clamp(safeWidth / (spanX + 70), 0.8, 1.3);
-      tx = 690 - cx * k;
-      ty = 460 - cy * k;
     }
     state.map = { k, tx, ty };
     // 省界出现的比例以「默认取景」为基准，而不是整幅地图
@@ -4433,6 +4473,7 @@
     openMediaDB().catch(() => {});
 
     registerServiceWorker();
+    window.__atlasReady = true;
     enableLandscapeHint();
 
     // "添加到主屏幕"快捷方式：?action=add 直接打开记录弹窗。
@@ -4459,7 +4500,22 @@
         root.style.setProperty('--fl-w', `${hgt}px`);
         root.style.setProperty('--fl-h', `${w}px`);
       }
+      const wasForced = root.classList.contains('force-landscape');
+      const wasCompact = root.classList.contains('compact-landscape');
       root.classList.toggle('force-landscape', force);
+      // 紧凑横屏：强制横屏，或本身就是矮的横屏设备
+      const nativeLandscape = w > hgt && hgt <= 560;
+      const compact = touch && (force || nativeLandscape);
+      root.classList.toggle('compact-landscape', compact);
+      root.style.setProperty('--ui-w', force ? `${hgt}px` : `${w}px`);
+      root.style.setProperty('--ui-h', force ? `${w}px` : `${hgt}px`);
+      // 布局模式变了（旋转 / 退出旋转）就按新的可用区域重新取景
+      const modeChanged = wasForced !== force || wasCompact !== compact;
+      if (modeChanged && window.__atlasReady) {
+        requestAnimationFrame(() => {
+          try { fitRoute(false); } catch (error) { /* 初始化未完成时忽略 */ }
+        });
+      }
       // 部分浏览器支持方向锁（通常需要全屏或已安装），能锁就顺手锁上
       const orientation = window.screen?.orientation;
       if (force && orientation?.lock) {

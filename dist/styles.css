@@ -1235,13 +1235,30 @@ html.force-landscape .lightbox[open] {
   top: 0;
   left: 0;
   margin: 0;
+  transform: translateX(var(--fl-h)) rotate(90deg);
+  transform-origin: 0 0;
+  border-radius: 0;
+}
+
+/* 主界面始终铺满旋转后的画布；弹窗在紧凑模式下保持自己的尺寸 */
+html.force-landscape .app,
+html.force-landscape .lightbox[open] {
   width: var(--fl-w);
   height: var(--fl-h);
   max-width: none;
   max-height: none;
-  transform: translateX(var(--fl-h)) rotate(90deg);
-  transform-origin: 0 0;
-  border-radius: 0;
+}
+html.force-landscape:not(.compact-landscape) dialog[open] {
+  width: var(--fl-w);
+  height: var(--fl-h);
+  max-width: none;
+  max-height: none;
+}
+
+/* 紧凑横屏：弹窗按电脑端比例居中显示，不铺满 */
+html.force-landscape.compact-landscape dialog[open],
+html.compact-landscape dialog[open] {
+  margin: auto;
 }
 
 /* 弹窗自带的入场动画会写回 transform: none，强制横屏时必须关掉 */
@@ -1290,6 +1307,76 @@ html.force-landscape .toast {
   .share-dialog { width: calc(100vw - 24px); }
   .share-preview { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 }
+
+/* 紧凑横屏（手机横放 / 竖屏强制旋转）：界面按电脑端比例缩放到合适尺寸 */
+html.compact-landscape .topbar { top: 8px; height: 42px; left: 10px; right: 10px; }
+html.compact-landscape .topbar-left { padding: 4px 10px 4px 4px; gap: 6px; }
+html.compact-landscape .scope-switch { min-width: 116px; }
+html.compact-landscape .scope-btn { padding: 4px 8px; font-size: 10.5px; }
+html.compact-landscape .share-btn { height: 34px; padding: 0 12px 0 10px; font-size: 10px; }
+html.compact-landscape .avatar-small { width: 32px; height: 32px; font-size: 10px; }
+
+/* 左侧抽屉：电脑端侧栏约 296px，这里按可用宽度的 3 成、最多 280px */
+html.compact-landscape .sidebar {
+  left: 8px; top: 8px; bottom: 8px;
+  width: min(280px, calc(var(--ui-w) * 0.3));
+  padding: 14px 14px 10px; border-radius: 20px;
+}
+html.compact-landscape .journal-intro h1 { font-size: 24px; }
+html.compact-landscape .journal-intro .lede { display: none; }
+html.compact-landscape .stats { padding: 8px 0; }
+html.compact-landscape .place-item { min-height: 50px; grid-template-columns: 60px 1fr 36px; }
+html.compact-landscape .place-main strong { font-size: 12.5px; }
+html.compact-landscape .add-place { height: 38px; margin-top: 8px; font-size: 9.5px; }
+
+/* 右侧记录卡片：电脑端 374px，这里最多 320px */
+html.compact-landscape .memory-panel {
+  top: 56px; right: 8px; bottom: 8px; left: auto;
+  width: min(320px, calc(var(--ui-w) * 0.36));
+  height: auto; border-radius: 18px;
+}
+html.compact-landscape .memory-cover { height: 112px; }
+html.compact-landscape .cover-caption h3 { font-size: 20px; }
+html.compact-landscape .memory-body { padding: 0 14px 10px; }
+html.compact-landscape .map-bottom { display: none; }
+
+/* 搜索 / 添加弹窗：居中，尺寸接近电脑端（不再铺满全屏） */
+html.compact-landscape .add-dialog,
+html.compact-landscape .album-dialog,
+html.compact-landscape .share-dialog,
+html.compact-landscape .profile-dialog,
+html.compact-landscape .confirm-dialog {
+  width: min(720px, calc(var(--ui-w) * 0.92));
+  height: auto;
+  max-width: min(720px, calc(var(--ui-w) * 0.92));
+  max-height: calc(var(--ui-h) * 0.92);
+  border-radius: 20px;
+  margin: auto;
+}
+html.compact-landscape .add-dialog {
+  height: min(430px, calc(var(--ui-h) * 0.92));
+  max-height: min(430px, calc(var(--ui-h) * 0.92));
+}
+html.compact-landscape .add-shell { border-radius: 20px; }
+html.compact-landscape .add-body { grid-template-columns: minmax(0, 1fr) 268px; }
+html.compact-landscape .add-head { padding: 16px 18px 10px; }
+html.compact-landscape .add-browse { padding: 12px 16px 0; }
+html.compact-landscape .add-preview { padding: 14px 15px 12px; }
+html.compact-landscape .preview-art { height: 92px; }
+html.compact-landscape .preview-copy { padding: 12px 1px 10px; }
+html.compact-landscape .trip-slot { height: 28px; }
+html.compact-landscape .result-item { padding: 6px 8px; }
+html.compact-landscape .share-dialog {
+  width: min(820px, calc(var(--ui-w) * 0.92));
+  max-width: min(820px, calc(var(--ui-w) * 0.92));
+}
+html.compact-landscape .share-preview { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); padding: 4px 18px 14px; }
+html.compact-landscape .confirm-dialog {
+  width: min(360px, calc(var(--ui-w) * 0.7));
+  max-width: min(360px, calc(var(--ui-w) * 0.7));
+  height: auto;
+}
+html.compact-landscape .toast { top: 56px; }
 
 /* 双指缩放时不要选中文字、不要出现点击态 */
 #travel-map.is-pinching { cursor: grabbing; }
