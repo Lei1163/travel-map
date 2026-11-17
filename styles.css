@@ -710,7 +710,7 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
 .trip-slots-head small { font-family: var(--font-mono); font-size: 8.4px; font-weight: 400; letter-spacing: 0.04em; color: rgba(37, 68, 59, 0.57); }
 .slot-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
 .trip-slot {
-  position: relative; display: flex; align-items: center; gap: 5px; min-width: 0;
+  position: relative; display: flex; align-items: center; gap: 5px; min-width: 0; width: 100%;
   height: 33px; padding: 0 8px; border-radius: 9px;
   border: 1px dashed rgba(143, 168, 141, 0.7); background: rgba(180, 198, 174, 0.16);
   font-size: 9.5px; color: rgba(37, 68, 59, 0.4); text-align: left; cursor: pointer;
@@ -725,7 +725,19 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
 .trip-slot .slot-remove {
   flex: none; width: 15px; height: 15px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
   background: rgba(37, 68, 59, 0.08); display: grid; place-items: center;
+  transition: background 0.16s, color 0.16s;
 }
+
+.slot-remove:hover,
+.slot-remove:focus-visible { background: rgba(168, 84, 63, 0.16); color: #A8543F; }
+
+/* 每座城市自己的日期，显示在格子右侧 */
+.slot-date {
+  flex: none; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.02em;
+  color: var(--accent-ink); white-space: nowrap;
+}
+
+.slot-date.is-waiting { color: rgba(168, 84, 63, 0.9); }
 .trip-slot .slot-remove svg { width: 8px; height: 8px; fill: none; stroke: rgba(37, 68, 59, 0.6); stroke-width: 2; }
 .trip-slot .slot-remove:hover { background: rgba(23, 169, 154, 0.16); }
 .result-list::-webkit-scrollbar { width: 4px; }
@@ -1369,4 +1381,6 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   /* 少了一行说明文字，右侧预览列可以更紧凑 */
   .add-preview { padding: 12px 14px 12px; }
   .preview-art { height: 104px; }
+  /* 每座城市右侧都带自己的日期，手机上改两列，城市名不会被截断 */
+  .slot-list { grid-template-columns: repeat(2, 1fr); }
 }

@@ -2911,22 +2911,46 @@
       btn.type = 'button';
       btn.className = `trip-slot${item ? ' is-filled' : ''}${i === state.activeSlot ? ' is-active' : ''}`;
       btn.dataset.slot = String(i);
-      btn.setAttribute('aria-label', item ? `第 ${i + 1} 站 ${item.name}，点击移除` : `第 ${i + 1} 站，空`);
+      const dateState = item ? slotDateState(item) : null;
+      const dateLabel = slotBadgeText(dateState)
+        || (dateState && (dateState.state === 'partial' || dateState.state === 'reversed') ? '待填日期' : '');
+      btn.setAttribute('aria-label', item
+        ? `第 ${i + 1} 站 ${item.name}${dateLabel ? `，${dateLabel}` : '，还没填日期'}，点击编辑日期`
+        : `第 ${i + 1} 站，空`);
+      btn.title = item ? `${item.name}${dateLabel ? ` · ${dateLabel}` : ''}` : '';
       btn.innerHTML = `
         <span class="slot-index">${String(i + 1).padStart(2, '0')}</span>
         <span class="slot-name">${item ? escapeHtml(item.name) : '选择城市'}</span>
-        ${item ? '<span class="slot-remove" role="presentation"><svg><use href="#i-close"></use></svg></span>' : ''}
+        ${item && dateLabel ? `<span class="slot-date${dateState.state === 'ok' ? '' : ' is-waiting'}">${dateLabel}</span>` : ''}
+        ${item ? '<span class="slot-remove" role="button" tabindex="-1" aria-label="移除这座城市的行程"><svg><use href="#i-close"></use></svg></span>' : ''}
       `;
-      btn.addEventListener('click', () => {
-        if (state.tripSlots[i]) {
+      btn.addEventListener('click', (event) => {
+        // 只有右侧 × 才移除城市
+        if (event.target.closest('.slot-remove') && state.tripSlots[i]) {
+          event.stopPropagation();
+          event.preventDefault();
           state.tripSlots.splice(i, 1);
-          state.activeSlot = Math.min(state.tripSlots.length, SLOT_COUNT - 1);
-        } else {
-          state.activeSlot = i;
+          state.activeSlot = Math.min(state.activeSlot, Math.max(0, state.tripSlots.length - 1));
+          renderTripSlots();
+          loadSlotDates(state.activeSlot);
+          updateAddState();
+          return;
         }
+        // 点击格子只切换选中，同步显示该城市的日期
+        if (state.tripSlots[i]) {
+          state.activeSlot = i;
+          renderTripSlots();
+          loadSlotDates(i);
+          updateAddState();
+          $('#visitDateStart')?.focus();
+          return;
+        }
+        // 点到空格子：不动输入框里已经填好的日期，直接把光标送回搜索框挑下一座城市
+        state.activeSlot = Math.max(0, state.tripSlots.length - 1);
         renderTripSlots();
+        loadSlotDates(state.activeSlot);
         updateAddState();
-        $('#destinationSearch').focus();
+        $('#destinationSearch')?.focus();
       });
       li.append(btn);
       frag.append(li);
@@ -2970,10 +2994,19 @@
       showToast(`${item.name}已经在本次轨迹里了`);
       return false;
     }
-    state.tripSlots.push({ ...item });
-    state.activeSlot = Math.min(state.tripSlots.length, SLOT_COUNT - 1);
+    // 先把上一座城市已经填好的日期存起来，再新建格子
+    storeActiveDates();
+    const carried = !state.tripSlots.length && state.pendingDates ? state.pendingDates : BLANK_ROWS;
+    state.pendingDates = null;
+    state.tripSlots.push({
+      ...item,
+      dateRows: carried.map((row) => [...row])
+    });
+    state.activeSlot = state.tripSlots.length - 1;
     hideAddNotice();
     renderTripSlots();
+    // 新城市默认没有日期：清空输入框，等用户为它填写
+    loadSlotDates(state.activeSlot);
     updateAddState();
     return true;
   }
@@ -3009,10 +3042,119 @@
     return readDateRows(DATE_ROWS);
   }
 
+  /* --------------------------------------------- 每座城市各自保存日期 */
+  const BLANK_ROWS = [['', ''], ['', '']];
+
+  function rowsFromSlot(slot) {
+    const rows = (slot && slot.dateRows) || [];
+    return [
+      [rows[0]?.[0] || '', rows[0]?.[1] || ''],
+      [rows[1]?.[0] || '', rows[1]?.[1] || '']
+    ];
+  }
+
+  function evaluateRows(rows) {
+    const filled = [];
+    for (const [start, end] of rows) {
+      if (!start && !end) continue;
+      if (!start || !end) return { state: 'partial', filled };
+      if (end < start) return { state: 'reversed', filled };
+      filled.push({ start, end });
+    }
+    if (!filled.length) return { state: 'empty', filled };
+    return { state: 'ok', filled };
+  }
+
+  function slotDateState(slot) {
+    return evaluateRows(rowsFromSlot(slot));
+  }
+
+  function readInputRows() {
+    return DATE_ROWS.map(([startSel, endSel]) => [$(startSel)?.value || '', $(endSel)?.value || '']);
+  }
+
+  function writeInputRows(rows) {
+    DATE_ROWS.forEach(([startSel, endSel], index) => {
+      const start = $(startSel);
+      const end = $(endSel);
+      if (start) start.value = rows[index]?.[0] || '';
+      if (end) end.value = rows[index]?.[1] || '';
+    });
+    syncDatePlaceholders();
+  }
+
+  function currentSlot() {
+    return state.tripSlots[state.activeSlot] || null;
+  }
+
+  // 输入框内容随时写回当前选中的城市，切换城市不会丢
+  function storeActiveDates() {
+    const rows = readInputRows();
+    const slot = currentSlot();
+    if (!slot) {
+      state.pendingDates = rows;
+      return;
+    }
+    slot.dateRows = rows;
+  }
+
+  function loadSlotDates(index) {
+    const slot = state.tripSlots[index] || null;
+    writeInputRows(slot ? rowsFromSlot(slot) : BLANK_ROWS);
+  }
+
+  function shortPeriod(period) {
+    if (!period) return '';
+    const month = Number(period.start.slice(5, 7));
+    const day = Number(period.start.slice(8, 10));
+    if (!month || !day) return '';
+    return `${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`;
+  }
+
+  // 格子右侧的日期徽标：单日就写 MM.DD，跨天写 MM.DD–MM.DD
+  function slotBadgeText(info) {
+    if (!info || info.state !== 'ok' || !info.filled.length) return '';
+    const [first, ...rest] = info.filled;
+    const start = shortPeriod(first);
+    const end = shortPeriod({ start: first.end });
+    const span = start === end ? start : `${start}–${end}`;
+    return rest.length ? `${span} +${rest.length}` : span;
+  }
+
+  // 输入日期时实时更新格子上的日期徽标，不用等列表重建
+  function refreshSlotBadges() {
+    const list = $('#slotList');
+    if (!list) return;
+    $$('.trip-slot.is-filled', list).forEach((btn) => {
+      const index = Number(btn.dataset.slot);
+      const slot = state.tripSlots[index];
+      if (!slot) return;
+      const info = slotDateState(slot);
+      const label = slotBadgeText(info)
+        || (info.state === 'partial' || info.state === 'reversed' ? '待填日期' : '');
+      let badge = btn.querySelector('.slot-date');
+      if (!label) {
+        badge?.remove();
+        return;
+      }
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'slot-date';
+        btn.insertBefore(badge, btn.querySelector('.slot-remove'));
+      }
+      badge.textContent = label;
+      badge.classList.toggle('is-waiting', info.state !== 'ok');
+    });
+  }
+
   function updateAddState() {
-    const count = state.tripSlots.length;
-    const dates = addDateState();
-    const ready = count > 0 && dates.state === 'ok';
+    storeActiveDates();
+    refreshSlotBadges();
+    const slots = state.tripSlots;
+    const count = slots.length;
+    const states = slots.map(slotDateState);
+    const pending = states.findIndex((info) => info.state !== 'ok');
+    const ready = count > 0 && pending === -1;
     $('#savePlaceBtn').disabled = !ready;
     $('#savePlaceBtn').innerHTML = count > 0
       ? `加入轨迹 · ${count} 座 <svg><use href="#i-arrow"></use></svg>`
@@ -3020,11 +3162,16 @@
     const hint = $('#addFootHint');
     if (!hint) return;
     if (!count) { hint.textContent = '至少选择 1 座城市才能加入轨迹'; return; }
-    if (dates.state === 'empty') { hint.textContent = '填写一段旅行日期后即可加入轨迹'; return; }
-    if (dates.state === 'partial') { hint.textContent = '请把这一段的开始和结束日期都填上'; return; }
-    if (dates.state === 'reversed') { hint.textContent = '结束日期不能早于开始日期'; return; }
-    const label = dates.filled.map((item) => formatRange(item.start, item.end)).join(' · ');
-    hint.textContent = `${count} 座城市已就绪 · 日期 ${label}`;
+    if (pending !== -1) {
+      const info = states[pending];
+      const name = slots[pending].name;
+      const order = pending + 1;
+      if (info.state === 'empty') hint.textContent = `第 ${order} 站「${name}」还没填日期`;
+      else if (info.state === 'partial') hint.textContent = `第 ${order} 站「${name}」请把开始和结束日期都填上`;
+      else hint.textContent = `第 ${order} 站「${name}」结束日期不能早于开始日期`;
+      return;
+    }
+    hint.textContent = `${count} 座城市已就绪 · 每座城市的日期都已填好`;
   }
 
   function chooseDestination(item) {
@@ -3050,6 +3197,7 @@
     state.addQuery = '';
     state.tripSlots = [];
     state.activeSlot = 0;
+    state.pendingDates = null;
     $('#destinationSearch').value = '';
     $('#previewImage').src = resolveAsset(DEFAULT_COVER);
     $('#previewCode').textContent = '—';
@@ -3198,21 +3346,23 @@
       return;
     }
 
-    const dateInfo = readDateRows(DATE_ROWS);
-    if (dateInfo.state === 'empty') {
-      showAddNotice('请至少填写一段旅行日期');
-      $('#visitDateStart').focus();
+    storeActiveDates();
+    const perSlot = slots.map(slotDateState);
+    const missing = perSlot.findIndex((info) => info.state !== 'ok');
+    if (missing !== -1) {
+      const info = perSlot[missing];
+      const name = slots[missing].name;
+      const order = missing + 1;
+      state.activeSlot = missing;
+      renderTripSlots();
+      loadSlotDates(missing);
+      updateAddState();
+      if (info.state === 'empty') showAddNotice(`请先给第 ${order} 站「${name}」填写日期`);
+      else if (info.state === 'partial') showAddNotice(`第 ${order} 站「${name}」的开始和结束日期都要填`);
+      else showAddNotice(`第 ${order} 站「${name}」结束日期不能早于开始日期`);
+      $('#visitDateStart')?.focus();
       return;
     }
-    if (dateInfo.state === 'partial') {
-      showAddNotice('请把这一段的开始和结束日期都填上');
-      return;
-    }
-    if (dateInfo.state === 'reversed') {
-      showAddNotice('结束日期不能早于开始日期');
-      return;
-    }
-    const periods = dateInfo.filled.slice(0, 2);
     const firstNote = $('#visitNote').value.trim();
     const tripId = uid('trip');
     const created = [];
@@ -3234,9 +3384,9 @@
         code: item.code,
         lat: Number(item.lat),
         lon: Number(item.lon),
-        date: periods[0].start,
-        dateEnd: periods[0].end,
-        periods: periods.map((item) => ({ ...item })),
+        date: perSlot[index].filled[0].start,
+        dateEnd: perSlot[index].filled[0].end,
+        periods: perSlot[index].filled.slice(0, 2).map((item) => ({ ...item })),
         note: index === 0
           ? (firstNote || `第一次抵达${item.name}，把这一天的风和光都收进地图里。`)
           : `第 ${index + 1} 站，${item.name}。`,
