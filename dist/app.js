@@ -1690,6 +1690,15 @@
     return { x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 };
   }
 
+  // 屏幕位移 → 地图坐标位移（自动处理界面旋转）
+  function dragDelta(inverse, fromX, fromY, toX, toY) {
+    if (!inverse) return { x: toX - fromX, y: toY - fromY };
+    const a = inverse.transformPoint ? inverse.transformPoint(new DOMPoint(fromX, fromY)) : null;
+    const b = a ? inverse.transformPoint(new DOMPoint(toX, toY)) : null;
+    if (!a || !b) return { x: toX - fromX, y: toY - fromY };
+    return { x: b.x - a.x, y: b.y - a.y };
+  }
+
   function viewBoxPoint(clientX, clientY) {
     const ctm = mapSvg.getScreenCTM();
     if (!ctm) return { x: clientX, y: clientY };
@@ -1715,7 +1724,8 @@
       if (activePointers.size === 2) {
         drag = null;
         mapSvg.classList.remove('is-dragging');
-        pinch = { distance: pointerDistance(), centre: pointerCentre() };
+        const ctm = mapSvg.getScreenCTM();
+        pinch = { distance: pointerDistance(), centre: pointerCentre(), inverse: ctm ? ctm.inverse() : null };
         mapSvg.classList.add('is-pinching');
         mapSvg.setPointerCapture?.(event.pointerId);
         return;
@@ -1724,13 +1734,16 @@
 
       if (event.target.closest('.map-marker')) return;
       if (event.pointerType === 'mouse' && event.button !== 0) return;
+      const ctm = mapSvg.getScreenCTM();
       drag = {
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
         tx: state.map.tx,
         ty: state.map.ty,
-        moved: false
+        moved: false,
+        // 记下按下瞬间的逆矩阵：界面旋转 90° 时，屏幕位移与地图坐标不是同一套方向
+        inverse: ctm ? ctm.inverse() : null
       };
       mapSvg.setPointerCapture?.(event.pointerId);
     });
@@ -1754,16 +1767,12 @@
           zoomMapAt(local.x, local.y, applied);
           pinch.distance = distance;
         }
-        // 两指整体移动时拖动地图
-        if (pinch.centre) {
-          const scaleX = mapSvg.viewBox.baseVal.width / mapSvg.clientWidth;
-          const scaleY = mapSvg.viewBox.baseVal.height / mapSvg.clientHeight;
-          const factor = Math.max(scaleX, scaleY);
-          const dx = (centre.x - pinch.centre.x) * factor;
-          const dy = (centre.y - pinch.centre.y) * factor;
-          if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-            state.map.tx += dx;
-            state.map.ty += dy;
+        // 两指整体移动时拖动地图（同样按地图坐标系换算）
+        if (pinch.centre && pinch.inverse) {
+          const delta = dragDelta(pinch.inverse, pinch.centre.x, pinch.centre.y, centre.x, centre.y);
+          if (Math.abs(delta.x) > 0.2 || Math.abs(delta.y) > 0.2) {
+            state.map.tx += delta.x;
+            state.map.ty += delta.y;
             clampMap();
             applyMapTransform();
           }
@@ -1779,11 +1788,10 @@
       if (!drag.moved && Math.hypot(dx, dy) < 4) return;
       drag.moved = true;
       mapSvg.classList.add('is-dragging');
-      const scaleX = mapSvg.viewBox.baseVal.width / mapSvg.clientWidth;
-      const scaleY = mapSvg.viewBox.baseVal.height / mapSvg.clientHeight;
-      const factor = Math.max(scaleX, scaleY);
-      state.map.tx = drag.tx + dx * factor;
-      state.map.ty = drag.ty + dy * factor;
+      // 把「起点 → 当前点」的屏幕位移映射回地图坐标，旋转后方向依然跟手
+      const delta = dragDelta(drag.inverse, drag.startX, drag.startY, event.clientX, event.clientY);
+      state.map.tx = drag.tx + delta.x;
+      state.map.ty = drag.ty + delta.y;
       clampMap();
       applyMapTransform();
     });
