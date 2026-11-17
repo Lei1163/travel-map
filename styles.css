@@ -1236,17 +1236,41 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   .brand-word { font-size: 15px; }
   .brand-word small { font-size: 6.5px; letter-spacing: 0.16em; }
 
-  .journal-intro { margin-top: 10px; padding: 0 2px; }
-  .journal-intro .eyebrow { font-size: 8px; letter-spacing: 0.14em; }
+  /* 标题区改成两栏：左边标题与说明，右边竖排统计数字 */
+  .journal-intro {
+    margin-top: 8px; padding: 0 2px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "eyebrow eyebrow"
+      "title   stats"
+      "lede    lede";
+    column-gap: 10px;
+    row-gap: 4px;
+    align-items: start;
+  }
+  .journal-intro .eyebrow { grid-area: eyebrow; font-size: 8px; letter-spacing: 0.14em; }
   .eyebrow-line { width: 18px; }
-  .journal-intro h1 { margin-top: 6px; font-size: 26px; line-height: 1.02; }
+  .journal-intro h1 { grid-area: title; margin-top: 2px; font-size: 26px; line-height: 1.02; }
   .journal-intro h1 span::after { height: 4px; bottom: 3px; }
-  .lede { margin-top: 6px; font-size: 10px; line-height: 1.65; }
+  .journal-intro .lede { grid-area: lede; margin-top: 2px; font-size: 10px; line-height: 1.6; }
 
-  .stats { margin-top: 10px; padding: 8px 0 7px; }
-  .stats > div { gap: 2px; padding-left: 10px; }
-  .stats strong { font-size: 17px; }
-  .stats span { font-size: 8.5px; letter-spacing: 0.06em; }
+  /* 统计：移到标题右侧，竖着排 */
+  .journal-intro .stats {
+    grid-area: stats;
+    display: flex; flex-direction: column; gap: 5px;
+    margin: 0; padding: 1px 0 0 9px;
+    border: 0; border-left: 1px solid var(--line);
+    align-self: start;
+    min-width: 62px;
+  }
+  .journal-intro .stats:has(#statCountrySlot[hidden]) { grid-template-columns: none; }
+  .journal-intro .stats > div {
+    display: flex; flex-direction: row; align-items: baseline; gap: 4px;
+    padding: 0; border: 0;
+  }
+  .journal-intro .stats strong { font-size: 15px; line-height: 1; }
+  .journal-intro .stats span { font-size: 8px; letter-spacing: 0.05em; white-space: nowrap; }
 
   .section-label { margin: 10px 2px 7px; font-size: 9.5px; }
   .year-range { font-size: 9px; }
