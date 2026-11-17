@@ -3003,7 +3003,6 @@
     $('#previewCode').textContent = item.code || '—';
     $('#previewCoord').textContent = formatCoord(item.lat, item.lon);
     $('#previewName').textContent = item.name;
-    $('#previewDesc').textContent = `${item.country} · ${item.en}，在这里留下一段新的记忆。`;
     addCityToSlots(item);
     $$('.result-item[data-city-key]', $('#destinationResults')).forEach((button) => {
       const selected = button.dataset.cityKey === cityKey(item);
@@ -3027,9 +3026,6 @@
     $('#previewMeta').textContent = state.scope === 'china'
       ? '从上方挑选中国城市，依次填进下方格子'
       : '从上方选择国家与城市，依次填进下方格子';
-    $('#previewDesc').textContent = state.scope === 'china'
-      ? '从左侧选择一个城市，也可以直接搜索。'
-      : '从左侧选择一个国家，再挑选城市；也可以直接搜索城市。';
     $('#visitDateStart').value = '';
     $('#visitDateEnd').value = '';
     $('#visitDate2Start').value = '';
