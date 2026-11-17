@@ -1376,6 +1376,18 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   /* 少了一行说明文字，右侧预览列可以更紧凑 */
   .add-preview { padding: 12px 14px 12px; }
   .preview-art { height: 104px; }
-  /* 每座城市右侧都带自己的日期，手机上改两列，城市名不会被截断 */
-  .slot-list { grid-template-columns: repeat(2, 1fr); }
+  /* 六格轨迹改成 3 列 × 2 行：城市名与日期分两行排，格子更扁，
+     省下的高度让给上方按省份浏览的列表 */
+  .slot-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .trip-slot {
+    height: auto; min-height: 34px; flex-wrap: wrap; align-content: center;
+    gap: 1px 4px; padding: 4px 6px; font-size: 9px; border-radius: 8px;
+  }
+  .trip-slot .slot-index { order: 0; font-size: 6.5px; }
+  .trip-slot .slot-name { order: 1; font-size: 9px; }
+  .trip-slot .slot-remove { order: 2; width: 14px; height: 14px; }
+  .trip-slot .slot-remove svg { width: 7px; height: 7px; }
+  .trip-slot .slot-date { order: 3; flex: 0 0 100%; font-size: 7.2px; letter-spacing: 0; }
+  /* 轨迹只占两行后，省份列表能多露出一整行 */
+  .result-list { max-height: 220px; }
 }
