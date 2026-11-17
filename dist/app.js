@@ -1526,25 +1526,24 @@
     const vp = mapViewport();
     if (!vp) return null;
     const { rect } = vp;
-    const compact = document.documentElement.classList.contains('compact-landscape');
-    const drawer = !compact && window.matchMedia('(max-width: 980px)').matches;
+    const drawer = window.matchMedia('(max-width: 980px)').matches;
     const sidebar = document.getElementById('sidebar');
     const panel = document.getElementById('memoryPanel');
     const sidebarOpen = Boolean(sidebar && sidebar.classList.contains('is-open'));
     const panelVisible = Boolean(panel && !panel.classList.contains('is-hidden'));
 
-    const gap = compact ? 10 : 14;
+    const gap = 14;
     let left = rect.left + gap;
     let right = rect.right - gap;
-    let top = rect.top + (compact ? 54 : (drawer ? 66 : 100));
-    let bottom = rect.bottom - (compact ? gap : (drawer ? 20 : 74));
+    const top = rect.top + (drawer ? 66 : 100);
+    const bottom = rect.bottom - (drawer ? 20 : 74);
 
-    if (!drawer && !compact) left = rect.left + 344;
+    if (!drawer) left = rect.left + 344;
     else if (sidebarOpen) left = rect.left + (sidebar?.offsetWidth || 268) + 16;
 
     if (panelVisible && !drawer) {
       const panelWidth = panel.offsetWidth || 374;
-      right = rect.right - panelWidth - (compact ? 14 : 40);
+      right = rect.right - panelWidth - 40;
     }
     return { left, right, top, bottom };
   }
@@ -1559,8 +1558,7 @@
     };
     const usableW = Math.max(180, safe.right - safe.left);
     const usableH = Math.max(160, safe.bottom - safe.top);
-    const maxK = document.documentElement.classList.contains('compact-landscape') ? 2.4 : 1.6;
-    const k = clamp(Math.min(usableW / (box.maxX - box.minX), usableH / (box.maxY - box.minY)) / s, 0.24, maxK);
+    const k = clamp(Math.min(usableW / (box.maxX - box.minX), usableH / (box.maxY - box.minY)) / s, 0.24, 1.6);
     const cx = (box.minX + box.maxX) / 2;
     const cy = (box.minY + box.maxY) / 2;
     const tx = ((safe.left + safe.right) / 2 - e) / s - cx * k;
@@ -1619,16 +1617,14 @@
     let ty;
     if (vp && safe) {
       const { s, e, f } = vp;
-      const compact = document.documentElement.classList.contains('compact-landscape');
       const usableW = Math.max(200, safe.right - safe.left);
       const usableH = Math.max(150, safe.bottom - safe.top);
       const spanY = Math.max(40, maxY - minY);
-      const maxK = compact ? 2.4 : 1.6;
-      k = clamp(Math.min(usableW / (spanX + 70), usableH / (spanY + 60)) / s, 0.42, maxK);
+      k = clamp(Math.min(usableW / (spanX + 70), usableH / (spanY + 60)) / s, 0.42, 1.6);
       // 让轨迹中心落在安全区中心
       tx = ((safe.left + safe.right) / 2 - e) / s - cx * k;
       ty = ((safe.top + safe.bottom) / 2 - f) / s - cy * k;
-      if (!compact && window.innerWidth > 760) {
+      if (window.innerWidth > 760) {
         // 桌面上保持原来略微偏上的取景习惯
         ty = 460 - cy * k;
       }
@@ -4493,71 +4489,12 @@
 
     registerServiceWorker();
     window.__atlasReady = true;
-    enableLandscapeHint();
 
     // "添加到主屏幕"快捷方式：?action=add 直接打开记录弹窗。
     try {
       const params = new URLSearchParams(location.search);
       if (params.get('action') === 'add') setTimeout(openAddDialog, 600);
     } catch (error) { /* ignore */ }
-  }
-
-  // 手机上默认横屏：竖屏握持时把整个界面顺时针旋转 90°，相当于强制横屏。
-  // 用户把手机横过来之后（orientation 变 landscape），旋转自动取消。
-  function enableLandscapeHint() {
-    const root = document.documentElement;
-    const touch = window.matchMedia('(pointer: coarse)').matches;
-
-    const sync = () => {
-      const w = window.innerWidth;
-      const hgt = window.innerHeight;
-      const portrait = hgt > w;
-      const phone = Math.min(w, hgt) <= 820;
-      // 不再旋转整页：横屏时才有紧凑布局，竖屏保持普通手机布局。
-      // 旋转会带来拖动方向、输入法方向、弹窗定位一连串问题，交给系统旋转更可靠。
-      const force = false;
-      if (force) {
-        // 旋转后的界面尺寸 = 竖屏的高 × 宽
-        root.style.setProperty('--fl-w', `${hgt}px`);
-        root.style.setProperty('--fl-h', `${w}px`);
-      }
-      const wasForced = root.classList.contains('force-landscape');
-      const wasCompact = root.classList.contains('compact-landscape');
-      root.classList.toggle('force-landscape', force);
-      // 紧凑横屏：强制横屏，或本身就是矮的横屏设备
-      const nativeLandscape = w > hgt && hgt <= 560;
-      const compact = touch && nativeLandscape && Math.min(w, hgt) <= 820;
-      root.classList.toggle('compact-landscape', compact);
-      root.style.setProperty('--ui-w', force ? `${hgt}px` : `${w}px`);
-      root.style.setProperty('--ui-h', force ? `${w}px` : `${hgt}px`);
-      // 横屏时按「电脑端 1440px 宽」等比缩小：缩放比例 = 可用宽 / 1440
-      if (compact) {
-        const landscapeW = force ? hgt : w;
-        const landscapeH = force ? w : hgt;
-        const zoom = Math.min(Math.max(landscapeW / 1440, 0.3), 1);
-        root.style.setProperty('--ui-zoom', zoom.toFixed(4));
-        root.style.setProperty('--ui-lw', `${Math.round(landscapeW / zoom)}px`);
-        root.style.setProperty('--ui-lh', `${Math.round(landscapeH / zoom)}px`);
-      }
-      // 布局模式变了（旋转 / 退出旋转）就按新的可用区域重新取景
-      const modeChanged = wasForced !== force || wasCompact !== compact;
-      if (modeChanged && window.__atlasReady) {
-        requestAnimationFrame(() => {
-          try { fitRoute(false); } catch (error) { /* 初始化未完成时忽略 */ }
-        });
-      }
-      // 部分浏览器支持方向锁（通常需要全屏或已安装），能锁就顺手锁上
-      const orientation = window.screen?.orientation;
-      if (force && orientation?.lock) {
-        orientation.lock('landscape').catch(() => {});
-      } else if (!force && orientation?.unlock) {
-        try { orientation.unlock(); } catch (error) { /* ignore */ }
-      }
-    };
-
-    sync();
-    window.addEventListener('resize', sync);
-    window.addEventListener('orientationchange', () => setTimeout(sync, 120));
   }
 
   // Offline shell for the installed app. Skipped on file:// where it cannot work.

@@ -1222,211 +1222,72 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   .share-hint { display: none; }
 }
 
-/* ------------------------------------------------------- 移动端强制横屏 */
-/* 竖屏握持时把界面整体旋转 90°：手机上打开就是横屏的用法，不再弹提示。 */
-html.force-landscape,
-html.force-landscape body {
-  overflow: hidden;
-  height: 100%;
-  background: #ECE8DC;
-}
-
-html.force-landscape .app,
-html.force-landscape dialog[open],
-html.force-landscape .lightbox[open] {
-  position: fixed;
-  top: 0;
-  left: 0;
-  margin: 0;
-  transform: translateX(var(--fl-h)) rotate(90deg);
-  transform-origin: 0 0;
-  border-radius: 0;
-}
-
-/* 主界面始终铺满旋转后的画布；弹窗在紧凑模式下保持自己的尺寸 */
-html.force-landscape .app,
-html.force-landscape .lightbox[open] {
-  width: var(--fl-w);
-  height: var(--fl-h);
-  max-width: none;
-  max-height: none;
-}
-html.force-landscape:not(.compact-landscape) dialog[open] {
-  width: var(--fl-w);
-  height: var(--fl-h);
-  max-width: none;
-  max-height: none;
-}
-
-/* 紧凑横屏：弹窗按电脑端比例居中显示，不铺满 */
-html.force-landscape.compact-landscape dialog[open],
-html.compact-landscape:not(.force-landscape) dialog[open] {
-  margin: auto;
-}
-
-/* 弹窗自带的入场动画会写回 transform: none，强制横屏时必须关掉 */
-html.force-landscape dialog[open],
-html.force-landscape dialog[open] * { animation: none !important; }
-
-html.force-landscape .app { min-height: 0; }
-html.force-landscape .map-shell,
-html.force-landscape #travel-map { height: 100%; }
-
-/* 提示条与遮罩跟随旋转，保证相对界面方向正确 */
-html.force-landscape .toast {
-  transform: translate(-50%, 0) rotate(90deg);
-  transform-origin: 50% 0;
-  top: 12px;
-  left: 50%;
-}
-
-/* 横屏（高度小的宽屏）：压缩顶部，地图占满，记录卡片改成右侧窄卡 */
-@media (orientation: landscape) and (max-height: 560px) {
-  .app { min-height: 0; height: 100svh; }
-  .topbar { top: 8px; height: 42px; left: 10px; right: 10px; }
-  .topbar-left { padding: 4px 10px 4px 4px; gap: 6px; }
-  .scope-switch { min-width: 116px; }
-  .scope-btn { padding: 4px 8px; font-size: 10.5px; }
-  .share-btn { height: 34px; padding: 0 12px 0 10px; font-size: 10px; }
-  .avatar-small { width: 32px; height: 32px; font-size: 10px; }
-  .journal-intro h1 { font-size: 26px; }
-  .journal-intro .lede { display: none; }
-  .sidebar { left: 8px; top: 8px; bottom: 8px; width: 268px; padding: 14px 14px 10px; }
-  .sidebar-head { margin-bottom: 6px; }
-  .journal-intro { margin: 8px 0 10px; }
-  .stats { padding: 8px 0; }
-  .place-item { min-height: 52px; grid-template-columns: 62px 1fr 38px; }
-  .place-main strong { font-size: 13px; }
-  .add-place { height: 40px; margin-top: 8px; font-size: 10px; }
-  .memory-panel { top: 56px; right: 8px; bottom: 8px; left: auto; width: min(330px, 44vw); height: auto; border-radius: 18px; }
-  .memory-cover { height: 120px; }
-  .map-bottom { display: none; }
-  .map-legend { font-size: 8px; }
-  .toast { top: 58px; }
-  .add-dialog { height: calc(100svh - 12px); }
-  .add-body { grid-template-columns: minmax(0, 1fr) 300px; }
-  .add-preview { padding: 14px 16px 12px; }
-  .preview-art { height: 96px; }
-  .share-dialog { width: calc(100vw - 24px); }
-  .share-preview { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-}
-
-/* ------------------------------------------------------- 紧凑横屏 */
-/* 思路：把界面按电脑端 1440px 的布局排好，再用 zoom 等比缩到手机横屏尺寸，
-   这样字体、图片、间距全部同比例缩小，视觉上就是「电脑端的迷你版」。 */
-html.compact-landscape:not(.force-landscape) .app {
-  position: fixed;
-  width: var(--ui-lw, 1440px);
-  height: var(--ui-lh, 666px);
-  min-height: 0;
-  zoom: var(--ui-zoom, 0.6);
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* 原生横屏：直接居中 */
-html.compact-landscape:not(.force-landscape) .app {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* 竖屏强制旋转：沿用满屏旋转（不缩放），保证内容不被挤压 */
-
-/* 竖屏强制旋转时，弹窗也整屏旋转（不做等比缩放，避免尺寸对不上） */
-html.force-landscape dialog[open] {
-  zoom: 1;
-  width: var(--fl-w);
-  height: var(--fl-h);
-  max-width: none;
-  max-height: none;
-  margin: 0;
-  border-radius: 0;
-}
-
-/* 弹窗在 top layer，不受 .app 的 zoom 影响，单独缩放并居中 */
-html.compact-landscape dialog[open] {
-  zoom: var(--ui-zoom, 0.6);
-  width: min(880px, calc(var(--ui-lw, 1440px) * 0.86));
-  height: auto;
-  max-width: min(880px, calc(var(--ui-lw, 1440px) * 0.86));
-  max-height: calc(var(--ui-lh, 666px) * 0.94);
-  margin: auto;
-  border-radius: 26px;
-}
-
-html.compact-landscape:not(.force-landscape) .add-dialog {
-  width: min(880px, calc(var(--ui-lw, 1440px) * 0.86));
-  height: min(650px, calc(var(--ui-lh, 666px) * 0.94));
-  max-height: min(650px, calc(var(--ui-lh, 666px) * 0.94));
-}
-
-html.compact-landscape:not(.force-landscape) .confirm-dialog { width: 380px; height: auto; }
-html.compact-landscape:not(.force-landscape) .share-dialog { width: min(1080px, calc(var(--ui-lw, 1440px) * 0.92)); }
-html.compact-landscape:not(.force-landscape) .profile-dialog { width: min(470px, calc(var(--ui-lw, 1440px) * 0.6)); }
-
-/* 提示条：同样缩放，并停留在画面正上方 */
-html.compact-landscape:not(.force-landscape) .toast {
-  zoom: var(--ui-zoom, 0.6);
-  top: calc(14px / var(--ui-zoom, 0.6));
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* 电脑端布局的还原：侧栏常驻、详情卡片在右侧、顶部栏保持桌面尺寸 */
-html.compact-landscape .sidebar {
-  position: absolute;
-  left: 18px;
-  top: 18px;
-  bottom: 18px;
-  width: 296px;
-  transform: none;
-  animation: none;
-  padding: 20px 18px 14px;
-  border-radius: 28px;
-}
-html.compact-landscape .sidebar-close,
-html.compact-landscape .menu-btn { display: none; }
-html.compact-landscape .sidebar-scrim { display: none; }
-
-html.compact-landscape .topbar {
-  left: 24px;
-  right: 24px;
-  top: 18px;
-  height: 58px;
-}
-html.compact-landscape .topbar-left { padding: 8px 13px 8px 9px; gap: 10px; }
-html.compact-landscape .scope-switch { min-width: 136px; }
-html.compact-landscape .scope-btn { padding: 6px 11px; font-size: 12px; }
-html.compact-landscape .search-pill { width: auto; height: 40px; padding: 0 11px 0 13px; gap: 9px; }
-html.compact-landscape .search-pill span { display: block; }
-html.compact-landscape .search-pill kbd { display: block; }
-html.compact-landscape .share-btn { height: 40px; padding: 0 17px 0 14px; font-size: 11px; }
-html.compact-landscape .share-btn span { display: inline; }
-html.compact-landscape .avatar-small { width: 38px; height: 38px; font-size: 12px; }
-
-html.compact-landscape .memory-panel {
-  position: absolute;
-  top: 90px;
-  right: 24px;
-  bottom: 24px;
-  left: auto;
-  width: 374px;
-  height: auto;
-  border-radius: 26px;
-}
-html.compact-landscape .memory-cover { height: 252px; }
-html.compact-landscape .cover-caption h3 { font-size: 27px; }
-
-html.compact-landscape .map-bottom { display: flex; left: 344px; right: 420px; bottom: 20px; }
-html.compact-landscape .map-controls { display: flex; }
-html.compact-landscape .place-item { min-height: 64px; grid-template-columns: 72px 1fr 44px; }
-html.compact-landscape .journal-intro { display: block; }
-html.compact-landscape .stats { display: flex; }
-html.compact-landscape .journal-intro .lede { display: block; }
-html.compact-landscape .add-place { height: 47px; margin-top: 10px; font-size: 10.5px; }
-
 /* 双指缩放时不要选中文字、不要出现点击态 */
 #travel-map.is-pinching { cursor: grabbing; }
+
+/* ------------------------------------------------- 手机侧栏（竖屏抽屉） */
+/* 抽屉高度有限：压缩标题区与统计区，把空间留给旅程列表和底部按钮 */
+@media (max-width: 980px) {
+  .sidebar {
+    padding: 14px 14px 10px;
+    border-radius: 22px;
+  }
+  .sidebar-head { margin-bottom: 2px; }
+  .brand-mark { width: 30px; height: 30px; }
+  .brand-word { font-size: 15px; }
+  .brand-word small { font-size: 6.5px; letter-spacing: 0.16em; }
+
+  .journal-intro { margin-top: 10px; padding: 0 2px; }
+  .journal-intro .eyebrow { font-size: 8px; letter-spacing: 0.14em; }
+  .eyebrow-line { width: 18px; }
+  .journal-intro h1 { margin-top: 6px; font-size: 26px; line-height: 1.02; }
+  .journal-intro h1 span::after { height: 4px; bottom: 3px; }
+  .lede { margin-top: 6px; font-size: 10px; line-height: 1.65; }
+
+  .stats { margin-top: 10px; padding: 8px 0 7px; }
+  .stats > div { gap: 2px; padding-left: 10px; }
+  .stats strong { font-size: 17px; }
+  .stats span { font-size: 8.5px; letter-spacing: 0.06em; }
+
+  .section-label { margin: 10px 2px 7px; font-size: 9.5px; }
+  .year-range { font-size: 9px; }
+  .trip-edit-btn { width: 20px; height: 20px; }
+
+  .home-block { margin-top: 8px; padding: 7px 9px; gap: 7px; }
+  .home-label { font-size: 8px; }
+
+  .place-scroll { min-height: 56px; }
+  .place-list { gap: 7px; }
+  .trip-card { border-radius: 14px; padding: 5px 4px 4px; }
+  .trip-card-head { padding: 2px 5px 4px; }
+  .trip-card-label b { font-size: 9px; }
+  .trip-card-label i,
+  .trip-card-count { font-size: 8.5px; }
+  .trip-card-list { gap: 1px; }
+
+  /* 城市卡片更紧凑 */
+  .place-item {
+    min-height: 50px;
+    padding: 6px 7px 6px 6px;
+    grid-template-columns: 56px 1fr 34px;
+    gap: 8px;
+    border-radius: 11px;
+  }
+  .place-date .date-line { font-size: 9.5px; }
+  .place-main { gap: 3px; }
+  .place-main strong { font-size: 12.5px; }
+  .place-main strong b { font-size: 7.5px; }
+  .place-main small { font-size: 9px; }
+  .place-thumb { width: 34px; height: 34px; border-radius: 9px; }
+
+  .add-place { height: 42px; margin-top: 8px; border-radius: 12px; font-size: 10px; }
+  .add-icon { width: 22px; height: 22px; }
+  .sidebar-foot { margin-top: 8px; padding-top: 8px; gap: 8px; }
+  .avatar { width: 28px; height: 28px; font-size: 9.5px; }
+  .profile-copy strong { font-size: 10px; }
+  .profile-copy small { font-size: 8.5px; }
+
+  .journey-empty { padding: 18px 12px 16px; }
+  .journey-empty strong { font-size: 11.5px; }
+  .journey-empty p { font-size: 9.5px; }
+}
