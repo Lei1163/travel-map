@@ -1725,7 +1725,7 @@
   // 正在按下的手指/指针，双指时用来算缩放比例
   const activePointers = new Map();
   // 拖动增益：1 = 完全跟手；小于 1 会让地图移动得更慢、更稳
-  const DRAG_GAIN = 0.82;
+  const DRAG_GAIN = 0.7;
 
   function pointerDistance() {
     const points = [...activePointers.values()];
