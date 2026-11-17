@@ -3103,6 +3103,25 @@
     writeInputRows(slot ? rowsFromSlot(slot) : BLANK_ROWS);
   }
 
+  // 日期输入框永远只属于「当前这座城市」，标题里写明白是哪一座，
+  // 免得以为整段轨迹共用一组日期。
+  function syncDateTarget() {
+    const target = $('#dateTarget');
+    if (!target) return;
+    const slot = currentSlot();
+    const index = slot ? state.tripSlots.indexOf(slot) : -1;
+    const hint = $('#dateHint');
+    if (slot && index >= 0) {
+      target.textContent = `第 ${String(index + 1).padStart(2, '0')} 站 · ${slot.name} 的日期`;
+      target.classList.add('is-city');
+      if (hint) hint.textContent = '至多两段，至少一段';
+    } else {
+      target.textContent = '旅行日期';
+      target.classList.remove('is-city');
+      if (hint) hint.textContent = '选好城市后为它填写';
+    }
+  }
+
   function shortPeriod(period) {
     if (!period) return '';
     const month = Number(period.start.slice(5, 7));
@@ -3150,6 +3169,7 @@
   function updateAddState() {
     storeActiveDates();
     refreshSlotBadges();
+    syncDateTarget();
     const slots = state.tripSlots;
     const count = slots.length;
     const states = slots.map(slotDateState);

@@ -819,6 +819,8 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
 /* 旅行日期：起止两端的日期区间 */
 .form-fields .date-range-field .field-label { display: flex; align-items: center; gap: 5px; }
 .form-fields .date-range-field .field-label svg { flex: none; }
+/* 当前正在填写的是哪一座城市 */
+.form-fields .date-range-field .field-label #dateTarget.is-city { color: var(--accent-ink); }
 .form-fields .date-range-field .field-label em {
   margin-left: auto; font-style: normal; font-size: 8.6px; font-weight: 400;
   letter-spacing: 0.02em; color: rgba(37, 68, 59, 0.72);
@@ -1340,22 +1342,15 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
 }
 
 /* --------------------------------------------- 手势/缩放期间降级渲染 */
-/* 拖动、缩放时隐藏最耗时的元素：滤镜阴影、点阵、轨迹光晕、全部城市名 */
+/* 拖动、缩放时只降级最耗时的图层（陆地阴影、点阵纹理、轨迹光晕）；
+   城市名、指引线、洲名/洋名始终保留，不会在移动地图时突然消失 */
 #travel-map.is-gesturing .land-fill,
 #travel-map.is-zooming .land-fill { filter: none; }
 
 #travel-map.is-gesturing .land-dots,
 #travel-map.is-gesturing .route-glow,
-#travel-map.is-gesturing .marker-label,
-#travel-map.is-gesturing .label-leader,
-#travel-map.is-gesturing .continent-label,
-#travel-map.is-gesturing .ocean-label,
 #travel-map.is-zooming .land-dots,
-#travel-map.is-zooming .route-glow,
-#travel-map.is-zooming .marker-label,
-#travel-map.is-zooming .label-leader,
-#travel-map.is-zooming .continent-label,
-#travel-map.is-zooming .ocean-label { display: none; }
+#travel-map.is-zooming .route-glow { display: none; }
 
 #travel-map.is-gesturing,
 #travel-map.is-zooming { shape-rendering: optimizeSpeed; }
