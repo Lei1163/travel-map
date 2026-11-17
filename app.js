@@ -1527,7 +1527,7 @@
     if (!vp) return null;
     const { rect } = vp;
     const compact = document.documentElement.classList.contains('compact-landscape');
-    const drawer = window.matchMedia('(max-width: 980px)').matches;
+    const drawer = !compact && window.matchMedia('(max-width: 980px)').matches;
     const sidebar = document.getElementById('sidebar');
     const panel = document.getElementById('memoryPanel');
     const sidebarOpen = Boolean(sidebar && sidebar.classList.contains('is-open'));
@@ -1690,13 +1690,27 @@
     return { x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 };
   }
 
-  // 屏幕位移 → 地图坐标位移（自动处理界面旋转）
-  function dragDelta(inverse, fromX, fromY, toX, toY) {
-    if (!inverse) return { x: toX - fromX, y: toY - fromY };
-    const a = inverse.transformPoint ? inverse.transformPoint(new DOMPoint(fromX, fromY)) : null;
-    const b = a ? inverse.transformPoint(new DOMPoint(toX, toY)) : null;
-    if (!a || !b) return { x: toX - fromX, y: toY - fromY };
-    return { x: b.x - a.x, y: b.y - a.y };
+  // 屏幕位移 → 地图坐标位移。
+  // 界面被旋转 90° 时，屏幕方向与地图方向不同：先反解旋转，再换算成地图单位。
+  function dragDelta(fromX, fromY, toX, toY) {
+    let dx = toX - fromX;
+    let dy = toY - fromY;
+    const app = document.getElementById('app');
+    const transform = app ? getComputedStyle(app).transform : 'none';
+    if (transform && transform !== 'none') {
+      try {
+        const matrix = new DOMMatrixReadOnly(transform).inverse();
+        // w=0 表示只做方向/缩放变换，忽略平移
+        const point = matrix.transformPoint(new DOMPoint(dx, dy, 0, 0));
+        dx = point.x;
+        dy = point.y;
+      } catch (error) { /* 保持原值 */ }
+    }
+    const viewBox = mapSvg.viewBox.baseVal;
+    const scaleX = viewBox.width / (mapSvg.clientWidth || 1);
+    const scaleY = viewBox.height / (mapSvg.clientHeight || 1);
+    const factor = Math.max(scaleX, scaleY);
+    return { x: dx * factor, y: dy * factor };
   }
 
   function viewBoxPoint(clientX, clientY) {
@@ -1724,8 +1738,7 @@
       if (activePointers.size === 2) {
         drag = null;
         mapSvg.classList.remove('is-dragging');
-        const ctm = mapSvg.getScreenCTM();
-        pinch = { distance: pointerDistance(), centre: pointerCentre(), inverse: ctm ? ctm.inverse() : null };
+        pinch = { distance: pointerDistance(), centre: pointerCentre() };
         mapSvg.classList.add('is-pinching');
         mapSvg.setPointerCapture?.(event.pointerId);
         return;
@@ -1734,7 +1747,6 @@
 
       if (event.target.closest('.map-marker')) return;
       if (event.pointerType === 'mouse' && event.button !== 0) return;
-      const ctm = mapSvg.getScreenCTM();
       drag = {
         pointerId: event.pointerId,
         startX: event.clientX,
@@ -1742,8 +1754,7 @@
         tx: state.map.tx,
         ty: state.map.ty,
         moved: false,
-        // 记下按下瞬间的逆矩阵：界面旋转 90° 时，屏幕位移与地图坐标不是同一套方向
-        inverse: ctm ? ctm.inverse() : null
+        // 旋转由 dragDelta 统一处理，这里不再缓存矩阵
       };
       mapSvg.setPointerCapture?.(event.pointerId);
     });
@@ -1768,8 +1779,8 @@
           pinch.distance = distance;
         }
         // 两指整体移动时拖动地图（同样按地图坐标系换算）
-        if (pinch.centre && pinch.inverse) {
-          const delta = dragDelta(pinch.inverse, pinch.centre.x, pinch.centre.y, centre.x, centre.y);
+        if (pinch.centre) {
+          const delta = dragDelta(pinch.centre.x, pinch.centre.y, centre.x, centre.y);
           if (Math.abs(delta.x) > 0.2 || Math.abs(delta.y) > 0.2) {
             state.map.tx += delta.x;
             state.map.ty += delta.y;
@@ -1789,7 +1800,7 @@
       drag.moved = true;
       mapSvg.classList.add('is-dragging');
       // 把「起点 → 当前点」的屏幕位移映射回地图坐标，旋转后方向依然跟手
-      const delta = dragDelta(drag.inverse, drag.startX, drag.startY, event.clientX, event.clientY);
+      const delta = dragDelta(drag.startX, drag.startY, event.clientX, event.clientY);
       state.map.tx = drag.tx + delta.x;
       state.map.ty = drag.ty + delta.y;
       clampMap();
@@ -4502,7 +4513,9 @@
       const hgt = window.innerHeight;
       const portrait = hgt > w;
       const phone = Math.min(w, hgt) <= 820;
-      const force = touch && portrait && phone;
+      // 不再旋转整页：横屏时才有紧凑布局，竖屏保持普通手机布局。
+      // 旋转会带来拖动方向、输入法方向、弹窗定位一连串问题，交给系统旋转更可靠。
+      const force = false;
       if (force) {
         // 旋转后的界面尺寸 = 竖屏的高 × 宽
         root.style.setProperty('--fl-w', `${hgt}px`);
@@ -4513,10 +4526,19 @@
       root.classList.toggle('force-landscape', force);
       // 紧凑横屏：强制横屏，或本身就是矮的横屏设备
       const nativeLandscape = w > hgt && hgt <= 560;
-      const compact = touch && (force || nativeLandscape);
+      const compact = touch && nativeLandscape && Math.min(w, hgt) <= 820;
       root.classList.toggle('compact-landscape', compact);
       root.style.setProperty('--ui-w', force ? `${hgt}px` : `${w}px`);
       root.style.setProperty('--ui-h', force ? `${w}px` : `${hgt}px`);
+      // 横屏时按「电脑端 1440px 宽」等比缩小：缩放比例 = 可用宽 / 1440
+      if (compact) {
+        const landscapeW = force ? hgt : w;
+        const landscapeH = force ? w : hgt;
+        const zoom = Math.min(Math.max(landscapeW / 1440, 0.3), 1);
+        root.style.setProperty('--ui-zoom', zoom.toFixed(4));
+        root.style.setProperty('--ui-lw', `${Math.round(landscapeW / zoom)}px`);
+        root.style.setProperty('--ui-lh', `${Math.round(landscapeH / zoom)}px`);
+      }
       // 布局模式变了（旋转 / 退出旋转）就按新的可用区域重新取景
       const modeChanged = wasForced !== force || wasCompact !== compact;
       if (modeChanged && window.__atlasReady) {
