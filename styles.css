@@ -1244,7 +1244,7 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
     grid-template-areas:
       "eyebrow eyebrow"
       "title   stats"
-      "lede    lede";
+      "lede    home";
     column-gap: 10px;
     row-gap: 4px;
     align-items: start;
@@ -1276,8 +1276,20 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   .year-range { font-size: 9px; }
   .trip-edit-btn { width: 20px; height: 20px; }
 
-  .home-block { margin-top: 8px; padding: 7px 9px; gap: 7px; }
-  .home-label { font-size: 8px; }
+  /* 居住城市：移到说明文字右侧，做成紧凑小卡 */
+  .home-block {
+    grid-area: home;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    margin: 0; padding: 4px 7px 5px;
+    border-radius: 9px;
+    align-self: end;
+    min-width: 78px;
+  }
+  .home-label { font-size: 7px; gap: 3px; letter-spacing: 0.04em; }
+  .home-label svg { width: 8px; height: 8px; }
+  .home-btn { font-size: 10px; gap: 3px; width: 100%; }
+  .home-btn #homeName { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 64px; }
+  .home-edit, .home-btn svg { width: 9px; height: 9px; }
 
   .place-scroll { min-height: 56px; }
   .place-list { gap: 7px; }
