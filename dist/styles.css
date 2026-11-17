@@ -1306,7 +1306,12 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
 
 /* --------------------------------------------- 移动端搜索弹窗：标题更紧凑 */
 @media (max-width: 760px) {
-  .add-head { padding: 16px 18px 8px; }
+  /* 标题区与搜索栏之间的留白收紧 */
+  .add-head { padding: 14px 18px 2px; }
+  .add-browse { padding-top: 2px; }
+  .add-notice { min-height: 0; margin-bottom: 0; padding-top: 0; }
+  .add-notice.is-visible { min-height: 22px; margin-bottom: 8px; }
+  .result-meta { padding: 8px 2px 6px; }
   .add-head h2 { margin-top: 5px; font-size: 19px; letter-spacing: -0.03em; }
   .add-head .eyebrow { font-size: 7px; letter-spacing: 0.14em; }
   .preview-copy { padding: 11px 1px 9px; }
