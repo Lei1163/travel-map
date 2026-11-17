@@ -1291,3 +1291,16 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   .journey-empty strong { font-size: 11.5px; }
   .journey-empty p { font-size: 9.5px; }
 }
+
+/* --------------------------------------------- 手势期间降级渲染（移动端流畅度） */
+/* 拖动/缩放时隐藏最耗时的元素：滤镜阴影、点阵、轨迹光晕、全部城市名 */
+#travel-map.is-gesturing .land-fill { filter: none; }
+#travel-map.is-gesturing .land-dots,
+#travel-map.is-gesturing .route-glow,
+#travel-map.is-gesturing .marker-label,
+#travel-map.is-gesturing .label-leader,
+#travel-map.is-gesturing .continent-label,
+#travel-map.is-gesturing .ocean-label { display: none; }
+#travel-map.is-gesturing { shape-rendering: optimizeSpeed; }
+/* 让地图图层提前提升为合成层，位移只走 GPU */
+#map-content { will-change: transform; }

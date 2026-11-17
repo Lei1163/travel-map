@@ -1470,6 +1470,55 @@
     });
   }
 
+  // 手势期间每帧最多重绘一次，并且用缓动追上手指的目标位置：
+  // 即使 pointermove 有快有慢，画面也是一条平滑的轨迹。
+  let easingFrame = 0;
+  let mapTarget = null;
+
+  function setMapTarget(tx, ty, k) {
+    mapTarget = { tx, ty, k };
+    if (!easingFrame) easingFrame = requestAnimationFrame(stepMapEasing);
+  }
+
+  function cancelMapEasing() {
+    mapTarget = null;
+    if (easingFrame) {
+      cancelAnimationFrame(easingFrame);
+      easingFrame = 0;
+    }
+  }
+
+  function stepMapEasing() {
+    easingFrame = 0;
+    if (!mapTarget) return;
+    const ease = 0.42;
+    const { tx, ty, k } = state.map;
+    const nextK = k + (mapTarget.k - k) * ease;
+    const nextTx = tx + (mapTarget.tx - tx) * ease;
+    const nextTy = ty + (mapTarget.ty - ty) * ease;
+    const settledK = Math.abs(mapTarget.k - nextK) < 0.0004;
+    const settled = settledK
+      && Math.abs(mapTarget.tx - nextTx) < 0.35
+      && Math.abs(mapTarget.ty - nextTy) < 0.35;
+    if (settled) {
+      state.map = { k: mapTarget.k, tx: mapTarget.tx, ty: mapTarget.ty };
+    } else {
+      state.map = { k: nextK, tx: nextTx, ty: nextTy };
+    }
+    clampMap();
+    applyMapTransform();
+    if (settled) {
+      mapTarget = null;
+      return;
+    }
+    easingFrame = requestAnimationFrame(stepMapEasing);
+  }
+
+  function flushMapTransform() {
+    cancelMapEasing();
+    applyMapTransform();
+  }
+
   function applyMapTransform() {
     const { k, tx, ty } = state.map;
     mapContent.setAttribute('transform', `translate(${tx.toFixed(2)} ${ty.toFixed(2)}) scale(${k.toFixed(4)})`);
@@ -1594,6 +1643,7 @@
   }
 
   function fitRoute(animate = false) {
+    cancelMapEasing();
     const places = sortedPlaces();
     if (!places.length) {
       // Nothing recorded yet: show the whole base map of the current scope.
@@ -1644,7 +1694,7 @@
     }
   }
 
-  function zoomMapAt(screenX, screenY, factor) {
+  function zoomMapAt(screenX, screenY, factor, defer = false) {
     const old = state.map;
     const newK = clamp(old.k * factor, 0.72, 3.2);
     const wx = (screenX - old.tx) / old.k;
@@ -1655,6 +1705,7 @@
       ty: screenY - wy * newK
     };
     clampMap();
+    if (defer) cancelMapEasing();
     applyMapTransform();
     state.mapMoved = true;
   }
@@ -1673,6 +1724,8 @@
 
   // 正在按下的手指/指针，双指时用来算缩放比例
   const activePointers = new Map();
+  // 拖动增益：1 = 完全跟手；小于 1 会让地图移动得更慢、更稳
+  const DRAG_GAIN = 0.82;
 
   function pointerDistance() {
     const points = [...activePointers.values()];
@@ -1735,7 +1788,7 @@
         drag = null;
         mapSvg.classList.remove('is-dragging');
         pinch = { distance: pointerDistance(), centre: pointerCentre() };
-        mapSvg.classList.add('is-pinching');
+        mapSvg.classList.add('is-pinching', 'is-gesturing');
         mapSvg.setPointerCapture?.(event.pointerId);
         return;
       }
@@ -1749,9 +1802,9 @@
         startY: event.clientY,
         tx: state.map.tx,
         ty: state.map.ty,
-        moved: false,
-        // 旋转由 dragDelta 统一处理，这里不再缓存矩阵
+        moved: false
       };
+      mapSvg.classList.add('is-gesturing');
       mapSvg.setPointerCapture?.(event.pointerId);
     });
 
@@ -1769,19 +1822,21 @@
         const ratio = distance / pinch.distance;
         if (Math.abs(ratio - 1) > 0.002 && Number.isFinite(ratio)) {
           const local = viewBoxPoint(centre.x, centre.y);
-          const target = clamp(state.map.k * ratio, 0.72, 3.2);
-          const applied = target / state.map.k;
-          zoomMapAt(local.x, local.y, applied);
+          const base = mapTarget || state.map;
+          const nextK = clamp(base.k * ratio, 0.72, 3.2);
+          const scaleRatio = nextK / base.k;
+          const anchorX = base.tx + local.x * base.k;
+          const anchorY = base.ty + local.y * base.k;
+          setMapTarget(anchorX - local.x * nextK, anchorY - local.y * nextK, nextK);
           pinch.distance = distance;
+          state.mapMoved = true;
         }
         // 两指整体移动时拖动地图（同样按地图坐标系换算）
         if (pinch.centre) {
           const delta = dragDelta(pinch.centre.x, pinch.centre.y, centre.x, centre.y);
           if (Math.abs(delta.x) > 0.2 || Math.abs(delta.y) > 0.2) {
-            state.map.tx += delta.x;
-            state.map.ty += delta.y;
-            clampMap();
-            applyMapTransform();
+            const base = mapTarget || state.map;
+            setMapTarget(base.tx + delta.x * DRAG_GAIN, base.ty + delta.y * DRAG_GAIN, base.k);
           }
         }
         pinch.centre = centre;
@@ -1797,14 +1852,20 @@
       mapSvg.classList.add('is-dragging');
       // 把「起点 → 当前点」的屏幕位移映射回地图坐标，旋转后方向依然跟手
       const delta = dragDelta(drag.startX, drag.startY, event.clientX, event.clientY);
-      state.map.tx = drag.tx + delta.x;
-      state.map.ty = drag.ty + delta.y;
-      clampMap();
-      applyMapTransform();
+      // DRAG_GAIN < 1：地图移动得比手指慢一点，拖起来更稳更从容
+      setMapTarget(
+        drag.tx + delta.x * DRAG_GAIN,
+        drag.ty + delta.y * DRAG_GAIN,
+        state.map.k
+      );
     });
 
     const endPointer = (event) => {
       activePointers.delete(event.pointerId);
+      if (activePointers.size === 0) {
+        mapSvg.classList.remove('is-gesturing', 'is-pinching', 'is-dragging');
+        flushMapTransform();
+      }
       if (activePointers.size < 2 && pinch) {
         pinch = null;
         mapSvg.classList.remove('is-pinching');
