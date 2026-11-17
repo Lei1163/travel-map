@@ -872,6 +872,7 @@
     const coast = svgEl('path', { d: landPath, class: 'land-coast', 'fill-rule': 'evenodd' });
     const dots = svgEl('path', { d: landPath, class: 'land-dots', 'fill-rule': 'evenodd' });
     mapLand.replaceChildren(base, dots, coast);
+    landBoxCache = null;
     const clipPath = document.getElementById('landClipPath');
     if (clipPath) clipPath.setAttribute('d', landPath);
 
@@ -1527,16 +1528,22 @@
 
   // Bounding box of the land currently drawn, in map coordinates. Anything
   // outside the 1440x900 viewBox is clipped, so it is trimmed here too.
+  // 陆地包围盒只在地图重建时才会变，缓存起来避免每次缩放都跑 getBBox
+  // （世界地图的陆地路径很大，getBBox 在缩放时是主要卡顿来源之一）
+  let landBoxCache = null;
+
   function currentLandBox() {
+    if (landBoxCache) return landBoxCache;
     const node = mapLand.querySelector('.land-coast');
     if (!node) return { minX: 0, minY: 0, maxX: 1440, maxY: 900 };
     const box = node.getBBox();
-    return {
+    landBoxCache = {
       minX: Math.max(0, box.x),
       minY: Math.max(0, box.y),
       maxX: Math.min(1440, box.x + box.width),
       maxY: Math.min(900, box.y + box.height)
     };
+    return landBoxCache;
   }
 
   // The map uses preserveAspectRatio="slice", so the viewBox is scaled to cover
@@ -1694,6 +1701,17 @@
     }
   }
 
+  // 缩放期间临时降级渲染：去掉滤镜、点阵、城市名，停止 220ms 后恢复
+  let zoomBoostTimer = 0;
+
+  function beginZoomBoost() {
+    mapSvg.classList.add('is-zooming');
+    clearTimeout(zoomBoostTimer);
+    zoomBoostTimer = setTimeout(() => {
+      mapSvg.classList.remove('is-zooming');
+    }, 420);
+  }
+
   function zoomMapAt(screenX, screenY, factor, defer = false) {
     const old = state.map;
     const newK = clamp(old.k * factor, 0.72, 3.2);
@@ -1706,6 +1724,7 @@
     };
     clampMap();
     if (defer) cancelMapEasing();
+    beginZoomBoost();
     applyMapTransform();
     state.mapMoved = true;
   }
@@ -1773,10 +1792,23 @@
   }
 
   function initMapInteraction() {
+    // 滚轮：把一帧内的多次滚动合并成一次缩放，避免高频重绘
+    let wheelFactor = 1;
+    let wheelRaf = 0;
+    let wheelPoint = null;
+
     mapSvg.addEventListener('wheel', (event) => {
       event.preventDefault();
-      const point = eventToViewBox(event);
-      zoomMapAt(point.x, point.y, event.deltaY < 0 ? 1.09 : 0.917);
+      wheelFactor *= event.deltaY < 0 ? 1.09 : 0.917;
+      wheelPoint = eventToViewBox(event);
+      beginZoomBoost();
+      if (wheelRaf) return;
+      wheelRaf = requestAnimationFrame(() => {
+        wheelRaf = 0;
+        const factor = wheelFactor;
+        wheelFactor = 1;
+        if (wheelPoint) zoomMapAt(wheelPoint.x, wheelPoint.y, factor);
+      });
     }, { passive: false });
 
     mapSvg.addEventListener('pointerdown', (event) => {

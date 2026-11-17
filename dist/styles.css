@@ -1291,16 +1291,29 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   .journey-empty p { font-size: 9.5px; }
 }
 
-/* --------------------------------------------- 手势期间降级渲染（移动端流畅度） */
-/* 拖动/缩放时隐藏最耗时的元素：滤镜阴影、点阵、轨迹光晕、全部城市名 */
-#travel-map.is-gesturing .land-fill { filter: none; }
+/* --------------------------------------------- 手势/缩放期间降级渲染 */
+/* 拖动、缩放时隐藏最耗时的元素：滤镜阴影、点阵、轨迹光晕、全部城市名 */
+#travel-map.is-gesturing .land-fill,
+#travel-map.is-zooming .land-fill { filter: none; }
+
 #travel-map.is-gesturing .land-dots,
 #travel-map.is-gesturing .route-glow,
 #travel-map.is-gesturing .marker-label,
 #travel-map.is-gesturing .label-leader,
 #travel-map.is-gesturing .continent-label,
-#travel-map.is-gesturing .ocean-label { display: none; }
-#travel-map.is-gesturing { shape-rendering: optimizeSpeed; }
+#travel-map.is-gesturing .ocean-label,
+#travel-map.is-zooming .land-dots,
+#travel-map.is-zooming .route-glow,
+#travel-map.is-zooming .marker-label,
+#travel-map.is-zooming .label-leader,
+#travel-map.is-zooming .continent-label,
+#travel-map.is-zooming .ocean-label { display: none; }
+
+#travel-map.is-gesturing,
+#travel-map.is-zooming { shape-rendering: optimizeSpeed; }
+
+/* 缩放时省界不再做透明度过渡，避免额外合成 */
+#travel-map.is-zooming .border-line { transition: none; }
 /* 让地图图层提前提升为合成层，位移只走 GPU */
 #map-content { will-change: transform; }
 
