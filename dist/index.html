@@ -50,6 +50,9 @@
 
   <div class="app" id="app">
     <div class="map-stage" id="mapStage">
+      <!-- 手势期间整幅地图由这一层交给合成器缩放（见 app.js 的 rasterLayer），
+           松手后再按最终比例重画一次，这样每一帧都不必重绘 SVG。 -->
+      <div class="map-canvas" id="mapCanvas">
       <svg id="travel-map" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-label="旅行轨迹地图" role="img">
         <defs>
           <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
@@ -90,6 +93,7 @@
           <g id="map-markers"></g>
         </g>
       </svg>
+      </div>
     </div>
 
     <aside class="sidebar" id="sidebar" aria-label="旅行足迹列表">
