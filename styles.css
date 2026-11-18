@@ -95,19 +95,25 @@ svg { display: block; }
   fill: #3D5A4A; opacity: 0.68; font-style: italic; pointer-events: none;
   paint-order: stroke; stroke: rgba(255, 255, 255, 0.9); stroke-width: 2px;
 }
-.route-segment { transition: opacity 0.4s var(--ease-out); }
-.route-glow { fill: none; stroke: #25443B; stroke-width: 11; stroke-linecap: round; opacity: 0.11; filter: url(#routeGlow); vector-effect: non-scaling-stroke; }
+/* 轨迹光晕：只是给主线垫一层宽而极淡的同色描边，
+   不再用高斯模糊滤镜 —— 模糊滤镜在手机上每次缩放都要重算，很贵。 */
+.route-segment { transition: opacity 0.4s var(--ease-out); --glow-op: 0.11; }
+.route-glow {
+  fill: none; stroke: #25443B; stroke-width: 11; stroke-linecap: round;
+  opacity: var(--glow-op); vector-effect: non-scaling-stroke;
+}
 .route-line {
   fill: none; stroke: url(#routeInk); stroke-width: 2.15; stroke-linecap: round; vector-effect: non-scaling-stroke;
 }
 .route-dot { fill: #25443B; opacity: 0.45; }
 .map-routes.has-selection .route-segment:not(.is-active) .route-line { opacity: 0.54; }
-.map-routes.has-selection .route-segment:not(.is-active) .route-glow { opacity: 0.055; }
+.map-routes.has-selection .route-segment:not(.is-active) { --glow-op: 0.055; }
 .route-segment.is-active .route-line { stroke-width: 2.9; opacity: 1; }
-.route-segment.is-active .route-glow { opacity: 0.22; }
+.route-segment.is-active { --glow-op: 0.22; }
 /* Legs that touch the selected city switch to mint; the home leg never does. */
 .route-segment.is-hot .route-line { stroke: url(#routeMint); }
-.route-segment.is-hot .route-glow { stroke: #39D6C2; opacity: 0.24; }
+.route-segment.is-hot .route-glow { stroke: #39D6C2; }
+.route-segment.is-hot { --glow-op: 0.24; }
 .map-routes.has-selection .route-segment.is-hot:not(.is-active) .route-line { opacity: 1; }
 
 
@@ -1350,8 +1356,13 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
 /* 拖动、缩放时不再切换任何图层（陆地阴影、点阵纹理、轨迹光晕、抗锯齿），
    因为这些改动会让整幅地图在手指落下和离手时各重绘一次，看起来像闪一下。
    现在手势期间画面完全不变，只有 #map-content 的 transform 在动。 */
-/* 让地图图层提前提升为合成层，位移只走 GPU */
-#map-content { will-change: transform; }
+/* 让地图图层提前提升为合成层，位移与缩放只走 GPU（transform-box/view-box 与原
+   SVG 属性变换的坐标系一致，渲染结果逐像素相同） */
+#map-content {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  will-change: transform;
+}
 
 /* --------------------------------------------- 移动端搜索弹窗：标题更紧凑 */
 @media (max-width: 760px) {

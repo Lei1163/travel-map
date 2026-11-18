@@ -822,6 +822,8 @@
   // 国内地图的省界始终显示；国际地图的国界仍要放大到 1.5 倍才出现。
   const BORDER_ZOOM_WORLD = 1.5;
 
+  // 每帧都会被调用，所以只在状态真的变化时才碰 DOM（缩放时改 class 会触发重绘）。
+  let borderState = '';
   function updateBorderVisibility() {
     if (!mapBorders) return;
     const base = state.baseK || state.map.k;
@@ -829,6 +831,9 @@
     const isChina = state.scope === 'china';
     const showProvince = isChina;
     const showCountry = !isChina && ratio >= BORDER_ZOOM_WORLD;
+    const key = `${showProvince ? 1 : 0}${showCountry ? 1 : 0}`;
+    if (key === borderState) return;
+    borderState = key;
     $('.border-country', mapBorders).classList.toggle('is-visible', showCountry);
     $('.border-province', mapBorders).classList.toggle('is-visible', showProvince);
     mapBorders.dataset.ratio = ratio.toFixed(2);
@@ -1410,6 +1415,7 @@
   }
 
   function renderMap() {
+    invalidateMapViewport();
     const places = sortedPlaces();
     // 国内地图的城市名整体放大 15%；分享图再额外放大 25%；
     // 手机屏幕小，再乘一档专属比例（分享图不受影响，它有自己的排版尺寸）
@@ -1534,7 +1540,9 @@
 
   function applyMapTransform() {
     const { k, tx, ty } = state.map;
-    mapContent.setAttribute('transform', `translate(${tx.toFixed(2)} ${ty.toFixed(2)}) scale(${k.toFixed(4)})`);
+    // 用 CSS transform 而不是 SVG 的 transform 属性：属性变换没法过渡，CSS 变换可以，
+    // 而且和 getScreenCTM() 的换算结果逐像素一致（transform-box: view-box + origin 0 0）。
+    mapContent.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${k.toFixed(4)})`;
     // 城市名不随放大无限变大：默认视角完全不变，放得越大标签越接近原本的屏幕尺寸；
     // 手机上再按当前取景比例归一，免得行程铺得开、地图缩得小时名字被压得太小。
     const fitK = state.baseK || k;
@@ -1545,9 +1553,16 @@
       counter = Math.min(counter, LABEL_PHONE_SCREEN_REF / (viewScale * k));
     }
     counter = Math.max(0.3, Math.min(1, counter));
-    mapContent.style.setProperty('--label-counter', counter.toFixed(3));
+    // 这个变量一变，所有城市名都要重新算样式；只在数值真的变了才写。
+    const counterText = counter.toFixed(3);
+    if (counterText !== labelCounterWritten) {
+      labelCounterWritten = counterText;
+      mapContent.style.setProperty('--label-counter', counterText);
+    }
     updateBorderVisibility();
   }
+
+  let labelCounterWritten = '';
 
   // Bounding box of the land currently drawn, in map coordinates. Anything
   // outside the 1440x900 viewBox is clipped, so it is trimmed here too.
@@ -1572,18 +1587,25 @@
   // The map uses preserveAspectRatio="slice", so the viewBox is scaled to cover
   // the element and the overflow is cropped. Derive that transform straight
   // from the element box: it is always in sync with the current layout.
+  // 视口尺寸只在窗口大小变化时才变，缓存下来可以省掉每帧的强制布局。
+  let viewportCache = null;
+
+  function invalidateMapViewport() { viewportCache = null; }
+
   function mapViewport() {
+    if (viewportCache) return viewportCache;
     // 用布局尺寸（clientWidth/Height），旋转 90° 后 getBoundingClientRect 会把宽高对调
     const width = mapSvg.clientWidth || mapSvg.getBoundingClientRect().width;
     const height = mapSvg.clientHeight || mapSvg.getBoundingClientRect().height;
     if (!width || !height) return null;
     const s = Math.max(width / 1440, height / 900);
-    return {
+    viewportCache = {
       rect: { left: 0, top: 0, width, height, right: width, bottom: height },
       s,
       e: (width - 1440 * s) / 2,
       f: (height - 900 * s) / 2
     };
+    return viewportCache;
   }
 
   // Which part of the 1440x900 viewBox is actually on screen.
@@ -4100,7 +4122,13 @@
     const source = document.getElementById('travel-map');
     const clone = source.cloneNode(true);
     const content = clone.querySelector('#map-content');
-    if (content) content.removeAttribute('transform');
+    if (content) {
+      // 视图变换现在写在 CSS（style.transform）里，属性里已经没有，两边都要清掉，
+      // 否则分享图会带着屏幕上的缩放/位移。
+      content.removeAttribute('transform');
+      content.style.transform = '';
+      content.style.transition = '';
+    }
 
     // 分享图里所有轨迹一视同仁：去掉选中态与淡化。
     const routes = clone.querySelector('#map-routes');
@@ -4722,6 +4750,7 @@
     });
 
     window.addEventListener('resize', () => {
+      invalidateMapViewport();
       if (window.innerWidth > 980) closeSidebar();
       const isMobile = window.innerWidth <= 760;
       if (isMobile !== wasMobileViewport) {
