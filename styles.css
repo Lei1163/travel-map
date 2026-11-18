@@ -132,6 +132,13 @@ svg { display: block; }
 .label-metrics .metric-name { font-family: var(--font-sans); font-size: var(--label-font, 4.45px); font-weight: 600; letter-spacing: 0.11px; }
 .label-metrics .metric-code { font-family: var(--font-mono); font-size: var(--label-code-font, 3.15px); font-weight: 400; letter-spacing: 0.4px; }
 .marker-label { transition: opacity 0.2s ease; }
+/* 地图放大时城市名不跟着一起变大：只把标签内容按 --label-counter 反向缩回，
+   标签相对城市点的偏移仍按地图坐标走，所以不会贴到点上消失。 */
+.marker-label > rect,
+.marker-label > text {
+  transform-origin: 0 0;
+  scale: var(--label-counter, 1);
+}
 /* A faint thread keeps a pushed-away label tied to its dot. */
 .label-leader { stroke: rgba(37, 68, 59, 0.28); stroke-width: 0.55; stroke-dasharray: 1.4 1.6; pointer-events: none; }
 .map-marker:hover .marker-ring { stroke-width: 1.9; fill: #F6F3EA; stroke: #39D6C2; }
@@ -1138,8 +1145,6 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   .panel-nav { display: none; }
   .map-controls { display: none; }
   .map-legend { font-size: 8px; }
-  .marker-label { display: none; }
-  .map-marker.is-selected .marker-label { display: block; }
   .share-btn svg { width: 16px; height: 16px; }
   .add-dialog { width: 100vw; height: 100svh; max-width: 100vw; max-height: 100svh; }
   .add-shell { border-radius: 0; }
@@ -1341,22 +1346,10 @@ dialog::backdrop { background: rgba(8, 26, 22, 0.52); backdrop-filter: blur(7px)
   .journey-empty p { font-size: 9.5px; }
 }
 
-/* --------------------------------------------- 手势/缩放期间降级渲染 */
-/* 拖动、缩放时只降级最耗时的图层（陆地阴影、点阵纹理、轨迹光晕）；
-   城市名、指引线、洲名/洋名始终保留，不会在移动地图时突然消失 */
-#travel-map.is-gesturing .land-fill,
-#travel-map.is-zooming .land-fill { filter: none; }
-
-#travel-map.is-gesturing .land-dots,
-#travel-map.is-gesturing .route-glow,
-#travel-map.is-zooming .land-dots,
-#travel-map.is-zooming .route-glow { display: none; }
-
-#travel-map.is-gesturing,
-#travel-map.is-zooming { shape-rendering: optimizeSpeed; }
-
-/* 缩放时省界不再做透明度过渡，避免额外合成 */
-#travel-map.is-zooming .border-line { transition: none; }
+/* --------------------------------------------- 手势/缩放期间的渲染策略 */
+/* 拖动、缩放时不再切换任何图层（陆地阴影、点阵纹理、轨迹光晕、抗锯齿），
+   因为这些改动会让整幅地图在手指落下和离手时各重绘一次，看起来像闪一下。
+   现在手势期间画面完全不变，只有 #map-content 的 transform 在动。 */
 /* 让地图图层提前提升为合成层，位移只走 GPU */
 #map-content { will-change: transform; }
 

@@ -1168,10 +1168,16 @@
   const MARKER_HIT = 8.44;
 
   // 国内地图的城市名放大 15%；生成分享图时再额外放大 25%。
+  // 手机上地图被压得很小，字号还要再放大一档，否则名字只有 4px 看不见。
   const LABEL_SCALE_CHINA = 1.15;
   const LABEL_SCALE_SHARE = 1.4375;
+  const LABEL_SCALE_PHONE = 2.4;
   let labelScale = 1;
   let shareLabelScale = 1;
+
+  function isPhoneMap() {
+    return window.innerWidth <= 760;
+  }
 
   const scaled = (base) => base * labelScale;
   const LABEL_HEIGHT = () => scaled(LABEL_HEIGHT_BASE);
@@ -1405,8 +1411,10 @@
 
   function renderMap() {
     const places = sortedPlaces();
-    // 国内地图的城市名整体放大 15%；分享图再额外放大 25%
-    labelScale = (state.scope === 'china' ? LABEL_SCALE_CHINA : 1) * shareLabelScale;
+    // 国内地图的城市名整体放大 15%；分享图再额外放大 25%；
+    // 手机屏幕小，再乘一档专属比例（分享图不受影响，它有自己的排版尺寸）
+    const phoneBoost = shareLabelScale === 1 && isPhoneMap() ? LABEL_SCALE_PHONE : 1;
+    labelScale = (state.scope === 'china' ? LABEL_SCALE_CHINA : 1) * shareLabelScale * phoneBoost;
     mapSvg.style.setProperty('--label-font', `${(LABEL_FONT_BASE * labelScale).toFixed(3)}px`);
     mapSvg.style.setProperty('--label-code-font', `${(LABEL_CODE_FONT_BASE * labelScale).toFixed(3)}px`);
     const routeFrag = document.createDocumentFragment();
@@ -1520,9 +1528,24 @@
     applyMapTransform();
   }
 
+  // 380–430px 宽的手机上，初次取景时 s×k 约 0.71，城市名就是按那个屏幕尺寸定的；
+  // 记住这个基准，让名字在任何取景比例下都保持同样大小。
+  const LABEL_PHONE_SCREEN_REF = 0.713;
+
   function applyMapTransform() {
     const { k, tx, ty } = state.map;
     mapContent.setAttribute('transform', `translate(${tx.toFixed(2)} ${ty.toFixed(2)}) scale(${k.toFixed(4)})`);
+    // 城市名不随放大无限变大：默认视角完全不变，放得越大标签越接近原本的屏幕尺寸；
+    // 手机上再按当前取景比例归一，免得行程铺得开、地图缩得小时名字被压得太小。
+    const fitK = state.baseK || k;
+    let counter = k > fitK ? fitK / k : 1;
+    if (isPhoneMap()) {
+      const vp = mapViewport();
+      const viewScale = vp ? vp.s : 1;
+      counter = Math.min(counter, LABEL_PHONE_SCREEN_REF / (viewScale * k));
+    }
+    counter = Math.max(0.3, Math.min(1, counter));
+    mapContent.style.setProperty('--label-counter', counter.toFixed(3));
     updateBorderVisibility();
   }
 
